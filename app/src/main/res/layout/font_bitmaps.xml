@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:id="@+id/bitmapsLayout"
+              android:layout_width="wrap_content"
+              android:layout_height="wrap_content"
+              android:textAppearance="@style/TextAppearance.AppCompat.Caption"
+              android:orientation="horizontal"
+        >
+
+    <ImageView
+            android:id="@+id/bitmap1"
+            style="@style/bitmapImageStyle"
+            />
+
+    <View style="@style/itemsVerticalSeparator"/>
+
+    <ImageView
+            android:id="@+id/bitmap2"
+            style="@style/bitmapImageStyle"
+            />
+
+    <View style="@style/itemsVerticalSeparator"/>
+
+    <ImageView
+            android:id="@+id/bitmap3"
+            style="@style/bitmapImageStyle"
+            />
+
+    <View style="@style/itemsVerticalSeparator"/>
+
+    <ImageView
+            android:id="@+id/bitmap4"
+            style="@style/bitmapImageStyle"
+            />
+
+    <View style="@style/itemsVerticalSeparator"/>
+
+    <ImageView
+            android:id="@+id/bitmap5"
+            style="@style/bitmapImageStyle"
+            />
+
+    <View style="@style/itemsVerticalSeparator"/>
+
+    <ImageView
+            android:id="@+id/bitmap6"
+            style="@style/bitmapImageStyle"
+            />
+
+    <View style="@style/itemsVerticalSeparator"/>
+
+    <ImageView
+            android:id="@+id/bitmap7"
+            style="@style/bitmapImageStyle"
+            />
+
+    <View style="@style/itemsVerticalSeparator"/>
+
+    <ImageView
+            android:id="@+id/bitmap8"
+            style="@style/bitmapImageStyle"
+            />
+
+    <View style="@style/itemsVerticalSeparator"/>
+
+    <ImageView
+            android:id="@+id/bitmap9"
+            style="@style/bitmapImageStyle"
+            />
+
+    <View style="@style/itemsVerticalSeparator"/>
+
+    <ImageView
+            android:id="@+id/bitmap10"
+            style="@style/bitmapImageStyle"
+            />
+
+    <View style="@style/itemsVerticalSeparator"/>
+
+    <ImageView
+            android:id="@+id/bitmap11"
+            style="@style/bitmapImageStyle"
+            />
+
+    <View style="@style/itemsVerticalSeparator"/>
+
+    <ImageView
+            android:id="@+id/bitmap12"
+            style="@style/bitmapImageStyle"
+            />
+
+    <View style="@style/itemsVerticalSeparator"/>
+
+    <ImageView
+            android:id="@+id/bitmap13"
+            style="@style/bitmapImageStyle"
+            />
+
+    <View style="@style/itemsVerticalSeparator"/>
+
+    <ImageView
+            android:id="@+id/bitmap14"
+            style="@style/bitmapImageStyle"
+            />
+
+    <View style="@style/itemsVerticalSeparator"/>
+
+    <ImageView
+            android:id="@+id/bitmap15"
+            style="@style/bitmapImageStyle"
+            />
+
+    <View style="@style/itemsVerticalSeparator"/>
+
+</LinearLayout>
