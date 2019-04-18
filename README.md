@@ -31,7 +31,8 @@ C code to be supported on request.
   *`/sdcard/Download/Fonts/`*    e.g. filename `FONT_TINY_UNICODE_16PX.txt`
   
 Also log output in android logcat is available. Log lines prefix to filter is `SK:`, just legacy to original language characters set, SK for Slovak :)
-To enable logcat log just uncomment the following `logMsg` code line in method `appendFontFile`
+To enable logcat log just uncomment the following `logMsg` code line in method `appendFontFile`.
+
 ```    private fun appendFontFile(line: String) {
            stringFileBuilder.append(line).append("\n")
 //           logMsg("SK: $line")
