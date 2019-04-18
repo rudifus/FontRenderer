@@ -1,4 +1,4 @@
-## FontRenderer - android truetype font converter into java/kotlin pixel bytes codes for LCD/OLED displays
+# FontRenderer - android truetype font converter into java/kotlin pixel bytes code arrays for LCD/OLED displays
 
 *FontRenderer* is android to preview and convert available true type fonts with extended latin characters such as diacritics 
 into code usable for showing text on LCD/OLED displays connected to Raspberry Pi or Android Things devices.
@@ -12,14 +12,14 @@ This Android Studio project contains 127 already included true type fonts added 
  * render complete ascii characters map into byte pixels array for java/kotlin code use.
 
 ## Actual supported ASCII characters ranges
- *  standard characters         ASCII 32..126     space .. ~
- *  extended latin characters   ASCII 161..382    ¡ .. À .. ž
+ *  standard characters         ASCII `32..126     space .. ~`
+ *  extended latin characters   ASCII `161..382    ¡ .. À .. ž`
  * optionally additional greek and coptic, armenian, cyrillic, hebrew or arabic ASCII range subsets could be enabled
 
-* listed: *
- ``` " !"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
-  "¡¢£¤¥¦§¨©ª«¬­®¯°±²³´µ¶·¸¹º»¼½¾¿ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþÿĀāĂăĄą"
-  "ĆćĈĉĊċČčĎďĐđĒēĔĕĖėĘęĚěĜĝĞğĠġĢģĤĥĦħĨĩĪīĬĭĮįİıĲĳĴĵĶķĸĹĺĻļĽľĿŀŁłŃńŅņŇňŉŊŋŌōŎŏŐőŒœŔŕŖŗŘřŚśŜŝŞşŠšŢţŤťŦŧŨũŪūŬŭŮůŰűŲųŴŵŶŷŸŹźŻżŽž"```
+*listed:*
+ ```  !"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~
+  ¡¢£¤¥¦§¨©ª«¬­®¯°±²³´µ¶·¸¹º»¼½¾¿ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþÿĀāĂăĄą
+  ĆćĈĉĊċČčĎďĐđĒēĔĕĖėĘęĚěĜĝĞğĠġĢģĤĥĦħĨĩĪīĬĭĮįİıĲĳĴĵĶķĸĹĺĻļĽľĿŀŁłŃńŅņŇňŉŊŋŌōŎŏŐőŒœŔŕŖŗŘřŚśŜŝŞşŠšŢţŤťŦŧŨũŪūŬŭŮůŰűŲųŴŵŶŷŸŹźŻżŽž```
 
 ## Output kotlin/java array code
 * The app output is merged into array of char pixels bytes: one for kotlin and one for java
@@ -32,7 +32,7 @@ C code to be supported on request.
   
 Also log output in android logcat is available. Log lines prefix to filter is `SK:`, just legacy to original language characters set, SK for Slovak :)
 
-## Sample output
+### Sample output
 
 There are generated pixel bytes for each character from supported ASCII range per row. Bytes width and height corresponds to rendered native true type font size.
    e.g 6x12 pixels matrix corresponds to the rendered char converted into 12 hexa bytes as height with 6 pixels as width in row, e.g.
