@@ -1,6 +1,6 @@
 # FontRenderer - android truetype font converter into java/kotlin pixel bytes code arrays for LCD/OLED displays
 
-*FontRenderer* is android to preview and convert available true type fonts with extended latin characters such as diacritics 
+*FontRenderer* is android app to preview and convert available true type fonts with extended latin characters such as diacritics 
 into code usable for showing text on LCD/OLED displays connected to Raspberry Pi or Android Things devices.
 
 This Android Studio project contains 127 already included true type fonts added into android resource dir `/res/font`.
@@ -17,6 +17,7 @@ This Android Studio project contains 127 already included true type fonts added 
  * optionally additional greek and coptic, armenian, cyrillic, hebrew or arabic ASCII range subsets could be enabled
 
 *listed:*
+
  ```  !"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~
   ¡¢£¤¥¦§¨©ª«¬­®¯°±²³´µ¶·¸¹º»¼½¾¿ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþÿĀāĂăĄą
   ĆćĈĉĊċČčĎďĐđĒēĔĕĖėĘęĚěĜĝĞğĠġĢģĤĥĦħĨĩĪīĬĭĮįİıĲĳĴĵĶķĸĹĺĻļĽľĿŀŁłŃńŅņŇňŉŊŋŌōŎŏŐőŒœŔŕŖŗŘřŚśŜŝŞşŠšŢţŤťŦŧŨũŪūŬŭŮůŰűŲųŴŵŶŷŸŹźŻżŽž```
@@ -37,7 +38,7 @@ To enable logcat log just uncomment the following `logMsg` code line in `appendF
  private fun appendFontFile(line: String) {
            stringFileBuilder.append(line).append("\n")
  //           logMsg("SK: $line")
-        }
+ }
 ```
 
 ### Sample output
