@@ -356,6 +356,7 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
                     private var pixelWidthMax: Int = 0
                     private var pixelHeightMax: Int = 0
                     private lateinit var fontFile: File
+                    
                     override fun onGlobalLayout() {
 
                         val fontParams = FONT_PARAMS[fontIndex]
