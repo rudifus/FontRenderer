@@ -24,7 +24,44 @@ import kotlin.text.StringBuilder
 import pub.devrel.easypermissions.EasyPermissions
 import pub.devrel.easypermissions.AfterPermissionGranted
 
-
+/**
+ * class to preview available true type fonts with extended latin characters such as diacritics.
+ * For preselected font there is rendered detailed preview of several characters for font text sizes from 5px to 64 px.
+ * User can then choose which text size matches the native font resolution the best.
+ * For such native text size complete ascii characters map is rendered into byte pixels for java/kotlin code use. E.g. for raspbery pi, android things java/kotlin apps.
+ * C code to be supported on request
+ *
+ * Actual supported ASCII characters:  2 ascii ranges merged into array of char pixel bytes: one for kotlin and one for java
+ *     ASCII 32-126    space .. ~
+ *     ASCII 161..382  ¡ .. À .. ž
+ *     optionally additional greek and coptic, armenian, cyrillic, hebrew or arabic ASCII subsets could be enabled
+ *
+ * listed:
+ * " !"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
+ * "¡¢£¤¥¦§¨©ª«¬­®¯°±²³´µ¶·¸¹º»¼½¾¿ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþÿĀāĂăĄą"
+ * "ĆćĈĉĊċČčĎďĐđĒēĔĕĖėĘęĚěĜĝĞğĠġĢģĤĥĦħĨĩĪīĬĭĮįİıĲĳĴĵĶķĸĹĺĻļĽľĿŀŁłŃńŅņŇňŉŊŋŌōŎŏŐőŒœŔŕŖŗŘřŚśŜŝŞşŠšŢţŤťŦŧŨũŪūŬŭŮůŰűŲųŴŵŶŷŸŹźŻżŽž"
+ *
+ * result code arrays are stored into SDcard directory /sdcard/Download/Fonts/    e.g. filename FONT_TINY_UNICODE_16PX.txt
+ *
+ * for each character is generated pixel bytes row by row upon native true type font text size,
+ *    e.g 6x12 pixels matrix, corresponding to width and height of rendered char with native font size 16 pixels
+ *
+ * output kotlin code sample :
+ *
+ *
+ * private val FONT_TINY_UNICODE_16PX = arrayOf( // FONT 16px tiny_unicode.ttf
+ *     intArrayOf(0x00, 0x00, 0x00, 0x1C, 0x22, 0x1C, 0x22, 0x22, 0x1C, 0x00, 0x00, 0x00), // 6x12 '8' 0x38
+ *     intArrayOf(0x00, 0x00, 0x00, 0x08, 0x08, 0x08, 0x08, 0x00, 0x08, 0x00, 0x00, 0x00), // 6x12 '!' 0x21
+ *     ...
+ * )
+ * private val FONT_TINY_UNICODE_16PX_WIDTH = intArrayOf(      //  rendered ascii char pixels width, mono fonts have fixed size chars
+ *     5,2,4,6,5,4,6,2,3,3,           // ' '..')' 0x20
+ *     4,4,3,4,2,4,5,3,5,5,           // '*'..'3' 0x2A
+ *     5,5,5,5,5,5,2,3,3,5,           // '4'..'=' 0x34
+ *     ...
+ * )
+ *
+ */
 class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
     override fun onClick(view: View) {
         logMsg("onClick")
