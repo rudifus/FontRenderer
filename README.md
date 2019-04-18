@@ -37,18 +37,18 @@ Also log output in android logcat is available. Log lines prefix to filter is `S
 There are generated pixel bytes for each character from supported ASCII range per row. Bytes width and height corresponds to rendered native true type font size.
    e.g 6x12 pixels matrix corresponds to the rendered char converted into 12 hexa bytes as height with 6 pixels as width in row, e.g.
 
-// 000000 [0]
-// 000000 [1]
-// 000000 [2]
-// 011100 [3]
-// 100010 [4]
-// 011100 [5]
-// 100010 [6]
-// 100010 [7]
-// 011100 [8]
-// 000000 [9]
-// 000000 [10]
-// 000000 [11]
+  000000 [0]
+  000000 [1]
+  000000 [2]
+  011100 [3]
+  100010 [4]
+  011100 [5]
+  100010 [6]
+  100010 [7]
+  011100 [8]
+  000000 [9]
+  000000 [10]
+  000000 [11]
 
 output kotlin code sample:
 
