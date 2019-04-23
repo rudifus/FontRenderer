@@ -373,22 +373,19 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
 
                         if (charIndex == 0) {
                             val fontSize = fontParams.fontSize.toInt()
-                            val arrayName = "${fontName}_${fontSize}px"
-                            val arrayNameCamel = arrayName.capitalize().replace("_", "")
+                            val nameParts = fontName.split('_')
+                            val arrayName = "${fontName.toUpperCase()}_${fontSize}px"
+                            val arrayNameCamel = "${Array(nameParts.size) { nameParts[it].capitalize() }.joinToString("")}${fontSize}px"
+//                            val arrayNameCamel = arrayName.replace("_", "")
                             appendFontFile(
                                 "${when (targetLang) {
                                     LANG_JAVA -> "package com.rudolas.mia.lcdst7920.fonts;\n" +
-                                            "\n" +
-                                            "import com.rudolas.mia.lcdst7920.SpiST9720.Companion.FontItem;\n" +
-                                            "\n" +
-                                            "public class AAS {" +
-                                            "\n" +
-                                            "    private  static final int[][] charsPixels = {"
+                                            "\nimport com.rudolas.mia.lcdst7920.SpiST9720.Companion.FontItem;\n" +
+                                            "\npublic class $arrayNameCamel {" +
+                                            "\n    private  static final int[][] charsPixels = {"
                                     else -> "package com.rudolas.mia.lcdst7920.fonts\n" +
-                                            "\n" +
-                                            "import com.rudolas.mia.lcdst7920.SpiST9720\n" +
-                                            "\n" +
-                                            "class $arrayNameCamel {\n" +
+                                            "\nimport com.rudolas.mia.lcdst7920.SpiST9720\n" +
+                                            "\nclass $arrayNameCamel {\n" +
                                             "    companion object {\n" +
                                             "        val font = SpiST9720.Companion.FontItem( // FONT ${fontSize}px $fontName.ttf\n" +
                                             "            \"${arrayName.toUpperCase()}\",\n" +
