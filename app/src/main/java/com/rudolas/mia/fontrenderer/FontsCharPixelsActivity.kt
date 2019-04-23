@@ -351,12 +351,12 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
                     private val stringFileBuilder = StringBuilder(2000)
                     private val widthsArray = IntArray(ASCII_LATIN_COUNT)
                     private var charIndex = 0
-                    private var toKotlin = true
+                    private var targetLang = 0
                     private lateinit var pixels: Array<Array<Boolean>>
                     private var pixelWidthMax: Int = 0
                     private var pixelHeightMax: Int = 0
                     private lateinit var fontFile: File
-                    
+
                     override fun onGlobalLayout() {
 
                         val fontParams = FONT_PARAMS[fontIndex]
@@ -373,11 +373,27 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
 
                         if (charIndex == 0) {
                             val fontSize = fontParams.fontSize.toInt()
-                            val arrayName = "FONT_${fontName.toUpperCase()}_${fontSize}PX"
+                            val arrayName = "${fontName}_${fontSize}px"
+                            val arrayNameCamel = arrayName.capitalize().replace("_", "")
                             appendFontFile(
-                                "private ${
-                                if (toKotlin) "val $arrayName = arrayOf(" else "static final int[][] $arrayName = {"
-                                } // FONT ${fontCharTextView.textSize.toInt()}px $fontName.ttf"
+                                "${when (targetLang) {
+                                    LANG_JAVA -> "package com.rudolas.mia.lcdst7920.fonts;\n" +
+                                            "\n" +
+                                            "import com.rudolas.mia.lcdst7920.SpiST9720.Companion.FontItem;\n" +
+                                            "\n" +
+                                            "public class AAS {" +
+                                            "\n" +
+                                            "    private  static final int[][] charsPixels = {"
+                                    else -> "package com.rudolas.mia.lcdst7920.fonts\n" +
+                                            "\n" +
+                                            "import com.rudolas.mia.lcdst7920.SpiST9720\n" +
+                                            "\n" +
+                                            "class $arrayNameCamel {\n" +
+                                            "    companion object {\n" +
+                                            "        val font = SpiST9720.Companion.FontItem( // FONT ${fontSize}px $fontName.ttf\n" +
+                                            "            \"${arrayName.toUpperCase()}\",\n" +
+                                            "            charBytes = arrayOf("
+                                }} "
                             )
                             pixels = Array(fontSize * 3) { Array(fontSize * 3) { false } }
                             val downloadDir = File(Environment.getExternalStorageDirectory(), "Download")
@@ -386,7 +402,9 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
                                 logMsg("CANNOT ACCESS KeywordsDownload directory")
                                 return
                             }
-                            fontFile = File(fontsDir, "$arrayName.txt")
+                            fontFile = File(
+                                fontsDir, "$arrayNameCamel.${getLangPrefix()}"
+                            )
                             if (!fontFile.exists()) {
                                 logMsg("Font file to be created ${fontFile.absolutePath}")
                             }
@@ -453,10 +471,15 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
 
                         appendFontFile(
                             if (isEmpty) {
-                                "    ${if (toKotlin) "IntArray(0)" else "{}"}, // blank font char '$charText' $hexAscii"
+                                "    ${when (targetLang) {
+                                    LANG_JAVA -> "{}"
+                                    else -> "IntArray(0)"
+                                }}, // blank font char '$charText' $hexAscii"
                             } else {
-                                "    ${if (toKotlin) "intArrayOf($rowBytes)" else "{$rowBytes}"}${
-                                if (isNotLastChar) "," else ""
+                                "    ${when (targetLang) {
+                                    LANG_JAVA -> "{$rowBytes}"
+                                    else -> "intArrayOf($rowBytes)"
+                                }} ${if (isNotLastChar) "," else ""
                                 }$spacer // [$charIndex] ${bitmapWidth}x${bitmapHeight - topOffset / divider} '$charText' $hexAscii"
                             }
                         )
@@ -465,34 +488,28 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
 
                         when {
                             ++charIndex < latinCharacters.length -> assignLatinCharToRender()
-                            toKotlin -> {
-                                writeArrayEnd()
-                                toKotlin = false
+                            targetLang == LANG_KOTLIN -> {
+                                writeArrayEnd(hasNoTopOffset)
+                                targetLang++
                                 charIndex = 0
                                 assignLatinCharToRender()
                             }
                             else -> {
                                 fontTexts.viewTreeObserver.removeOnGlobalLayoutListener(this)
-                                writeArrayEnd()
-                                if (hasNoTopOffset) {
-                                    appendFontFile("// Max Bitmap $pixelWidthMax x $pixelHeightMax")
-                                    for (y in 0 until pixelHeightMax) {
-                                        for (x in 0 until pixelWidthMax) {
-                                            stringPreviewBuilder.append(if (pixels[y][x]) '#' else '.')
-                                        }
-                                        appendFontFile("// Mass Matrix $stringPreviewBuilder $y")
-                                        stringPreviewBuilder.clear()
-                                    }
-                                }
-                                fontFile.sink(false).buffer().use {
-                                    it.write(stringFileBuilder.toString().encodeUtf8())
-                                }
-                                stringFileBuilder.clear()
-
+                                writeArrayEnd(hasNoTopOffset)
                                 fontLatinCharsView.text = skChars
                                 charIndex = 0
                                 setCharTextSize(5f)
                             }
+                        }
+                    }
+
+                    private fun getLangPrefix(): String {
+                        return when (targetLang) {
+                            LANG_JAVA -> "java"
+                            LANG_PYTHON -> "py"
+                            LANG_C -> "c"
+                            else -> "kt"
                         }
                     }
 
@@ -512,17 +529,12 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
                         fontCharTextView.text = latinCharacters[charIndex].toString()
                     }
 
-                    private fun writeArrayEnd() {
-                        appendFontFile(if (toKotlin) ")" else "}")
-                        val fontParams = FONT_PARAMS[fontIndex]
-                        val fontCharWidth =
-                            "FONT_${fontParams.fontName.toUpperCase()}_${fontParams.fontSize.toInt()}PX_WIDTH"
+                    private fun writeArrayEnd(hasNoTopOffset: Boolean) {
+                        val isKotlin = targetLang == LANG_KOTLIN
+                        appendFontFile(if (isKotlin) ")," else "};")
                         appendFontFile(
-                            "private ${
-                            if (toKotlin) "val $fontCharWidth" else "static final int[] $fontCharWidth"
-                            } = ${
-                            if (toKotlin) "intArrayOf(" else "{"
-                            }"
+                            if (isKotlin) "            widths = intArrayOf("
+                            else "    private static final int[] widths = {"
                         )
 
                         for (i in widthsArray.indices) {
@@ -546,7 +558,34 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
                             appendFontFile("    $stringPreviewBuilder //    ..'${latinCharacters[widthsArray.indices.last]}'")
                             stringPreviewBuilder.clear()
                         }
-                        appendFontFile(if (toKotlin) ")" else "}")
+                        val fontParams = FONT_PARAMS[fontIndex]
+                        appendFontFile(
+                            if (isKotlin) "        )\n    )\n    }\n}"
+                            else "};\n\n    public static final FontItem FONT = new FontItem(\n" +
+                                    "            \"${fontParams.fontName.toUpperCase()}_${fontParams.fontSize.toInt()}PX\",\n" +
+                                    "            charsPixels,\n" +
+                                    "            widths\n" +
+                                    "    );\n}"
+
+                        )
+
+                        if (!isKotlin) {
+                            appendFontFile("")
+                        }
+                        if (hasNoTopOffset) {
+                            appendFontFile("// Max Bitmap $pixelWidthMax x $pixelHeightMax")
+                            for (y in 0 until pixelHeightMax) {
+                                for (x in 0 until pixelWidthMax) {
+                                    stringPreviewBuilder.append(if (pixels[y][x]) '#' else '.')
+                                }
+                                appendFontFile("// Mass Matrix $stringPreviewBuilder $y")
+                                stringPreviewBuilder.clear()
+                            }
+                        }
+                        fontFile.sink(false).buffer().use {
+                            it.write(stringFileBuilder.toString().encodeUtf8())
+                        }
+                        stringFileBuilder.clear()
                     }
                 }
             })
@@ -646,10 +685,19 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
         )
 
         private val FONT_PARAMS = arrayOf(
-            FontParams(fontSize = 20f, fontRes = R.font.adbxtra, fontName = "adbxtra"),
-            FontParams(fontSize = 18f, fontRes = R.font.addwb_, fontName = "addwb_"),
+            FontParams(
+                fontSize = 20f, fontRes = R.font.adbxtra, fontName = "adbxtra",
+                divider = 2, topOffset = 0, bottomOffset = 0
+            ),
+            FontParams(
+                fontSize = 18f, fontRes = R.font.addwb_, fontName = "addwb",
+                divider = 2, topOffset = 0, bottomOffset = 0
+            ),
             FontParams(fontSize = 20f, fontRes = R.font.advanced_pixel_7, fontName = "advanced_pixel_7"),
-            FontParams(fontSize = 32f, fontRes = R.font.aerx_font, fontName = "aerx_font"),
+            FontParams(
+                fontSize = 16f, fontRes = R.font.aerx_font, fontName = "aerx_font",
+                divider = 1, topOffset = 0, bottomOffset = 0
+            ),
             FontParams(
                 fontSize = 16f, fontRes = R.font.aerxtabs_memesbruh03, fontName = "aerxtabs_memesbruh03",
                 divider = 1, topOffset = 2, bottomOffset = 1
@@ -662,8 +710,9 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
             FontParams(fontSize = 16f, fontRes = R.font.andina, fontName = "andina"), //27
             FontParams(fontSize = 16f, fontRes = R.font.angie_atore, fontName = "angie_atore"),
             FontParams(
-                fontSize = 32f, fontRes = R.font.animal_crossing_wild_world,
-                fontName = "animal_crossing_wild_world"
+                fontSize = 32f, fontRes = R.font.animal_crossing_wild_world,  // 32f
+                fontName = "animal_crossing_wild_world",
+                divider = 2, topOffset = 0, bottomOffset = 0
             ),
             FontParams(fontSize = 16f, fontRes = R.font.babyblue, fontName = "babyblue"),
             FontParams(fontSize = 16f, fontRes = R.font.bit_light10_srb, fontName = "bit_light10_srb"), // poor
@@ -676,7 +725,10 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
             FontParams(fontSize = 9f, fontRes = R.font.blau7pt, fontName = "blau7pt"),
             FontParams(fontSize = 20f, fontRes = R.font.bm_mini, fontName = "bm_mini"),
             FontParams(fontSize = 30f, fontRes = R.font.bmhaa, fontName = "bmhaa"),
-            FontParams(fontSize = 27f, fontRes = R.font.bncuword, fontName = "bncuword"),
+            FontParams(
+                fontSize = 27f, fontRes = R.font.bncuword, fontName = "bncuword",
+                divider = 1, topOffset = 5, bottomOffset = 6
+            ),
             FontParams(fontSize = 36f, fontRes = R.font.bodge_r, fontName = "bodge_r"),
             FontParams(fontSize = 38f, fontRes = R.font.c_and_c_red_alert_inet, fontName = "c_and_c_red_alert_inet"),
             FontParams(fontSize = 41f, fontRes = R.font.c_and_c_red_alert_lan, fontName = "c_and_c_red_alert_lan"),
@@ -697,13 +749,19 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
             FontParams(fontSize = 41f, fontRes = R.font.everyday, fontName = "everyday"),
             FontParams(fontSize = 38f, fontRes = R.font.fffac, fontName = "fffac"),
             FontParams(fontSize = 8f, fontRes = R.font.fleftex_m, fontName = "fleftex_m"),
-            FontParams(fontSize = 32f, fontRes = R.font.font15x5, fontName = "font15x5"),
+            FontParams(
+                fontSize = 16f, fontRes = R.font.font15x5, fontName = "font15x5",
+                divider = 1, topOffset = 0, bottomOffset = 0
+            ),
             FontParams(
                 fontSize = 16f, fontRes = R.font.font2a03_memesbruh03, fontName = "font2a03_memesbruh03",
                 divider = 1, topOffset = 1, bottomOffset = 1
             ),
             FontParams(fontSize = 16f, fontRes = R.font.font712_serif, fontName = "font712_serif"),
-            FontParams(fontSize = 24f, fontRes = R.font.font7x5, fontName = "font7x5"),  //16px
+            FontParams(
+                fontSize = 24f, fontRes = R.font.font7x5, fontName = "font7x5",
+                divider = 1, topOffset = 0, bottomOffset = 0
+            ),  //16px
             FontParams(fontSize = 7f, fontRes = R.font.font_8_bit_fortress, fontName = "font_8_bit_fortress"),
             FontParams(
                 fontSize = 16f, fontRes = R.font.free_pixel, fontName = "free_pixel",
@@ -761,7 +819,10 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
             FontParams(fontSize = 16f, fontRes = R.font.optixal, fontName = "optixal"),
 // FontParams(fontSize = 16f, fontRes = R.font.peepo, fontName = "peepo"),
             FontParams(fontSize = 16f, fontRes = R.font.pf_ronda_seven, fontName = "pf_ronda_seven"),  //1px
-            FontParams(fontSize = 20f, fontRes = R.font.pix_l, fontName = "pix_l"), //1px
+            FontParams(
+                fontSize = 20f, fontRes = R.font.pix_l, fontName = "pix_l",
+                divider = 2, topOffset = 0, bottomOffset = 0
+            ), //1px
             FontParams(fontSize = 1f, fontRes = R.font.pixel_block_bb, fontName = "pixel_block_bb"),
             FontParams(fontSize = 16f, fontRes = R.font.pixel_operator, fontName = "pixel_operator"),  //50px
             FontParams(fontSize = 8f, fontRes = R.font.pixel_operator8, fontName = "pixel_operator8"),  //50px
@@ -789,8 +850,13 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
             FontParams(fontSize = 8f, fontRes = R.font.rev_mini_pixel, fontName = "rev_mini_pixel"),  //1px
             FontParams(fontSize = 41f, fontRes = R.font.rififi_serif, fontName = "rififi_serif"),
             FontParams(fontSize = 8f, fontRes = R.font.rix, fontName = "rix"),
-            FontParams(fontSize = 21f, fontRes = R.font.rntg_larger, fontName = "rntg_larger"),  //1px
-            FontParams(fontSize = 20f, fontRes = R.font.root_square, fontName = "root_square"),  //1px
+            FontParams(fontSize = 21f, fontRes = R.font.rntg_larger, fontName = "rntg_larger",
+                divider = 2, topOffset = 0, bottomOffset = 0
+            ),  //1px
+            FontParams(
+                fontSize = 20f, fontRes = R.font.root_square, fontName = "root_square",
+                divider = 2, topOffset = 0, bottomOffset = 0
+            ),  //1px
             FontParams(fontSize = 40f, fontRes = R.font.rosesare_ff0000, fontName = "rosesare_ff0000"), //1px
             FontParams(
                 fontSize = 20f,
@@ -799,7 +865,9 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
             ), //1px
             FontParams(fontSize = 1f, fontRes = R.font.rtt_redstar_8, fontName = "rtt_redstar_8"),
             FontParams(fontSize = 16f, fontRes = R.font.savior1, fontName = "savior1"),  //1px
-            FontParams(fontSize = 16f, fontRes = R.font.scifibit, fontName = "scifibit"),  //1px
+            FontParams(fontSize = 16f, fontRes = R.font.scifibit, fontName = "scifibit",
+                divider = 2, topOffset = 0, bottomOffset = 0
+                ),  //1px
             FontParams(fontSize = 16f, fontRes = R.font.sevastopol_interface, fontName = "sevastopol_interface"),  //1px
             FontParams(fontSize = 1f, fontRes = R.font.sg04, fontName = "sg04"),
             FontParams(fontSize = 16f, fontRes = R.font.sgk075, fontName = "sgk075"),  //1px
@@ -845,6 +913,10 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
         private const val BITMAPS_LINES = 4
         private const val HEX_VALUES_LINE_LIMIT = 14
         private const val FONT_SIZE = 16f
+        private const val LANG_KOTLIN = 0
+        private const val LANG_JAVA = 1
+        private const val LANG_C = 2
+        private const val LANG_PYTHON = 3
 
         private const val ACTION_DETAIL = "ACTION_DETAIL"
 
