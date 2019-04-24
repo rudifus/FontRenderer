@@ -81,7 +81,7 @@ import kotlin.math.min
  *              )
  *         }
  *     }
- *     // Max Bitmap 14 x 13 Offsets [0, 0]
+ *     // Max Bitmap 14 x 13 Offsets [Top=0, Bottom=0]
  *     // Mass Matrix - merged text preview from all characters rendered into one map
  *     // Mass Matrix ############## 0
  *     // Mass Matrix ############## 1
@@ -340,18 +340,13 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
      * </code>
      */
     private fun generateFontCharactersCodeArray(
-//        fontIndex: Int,
-//        fontParams: FontParams,
         toCheckBitmaps: Boolean = false,
         toRender: Boolean = false,
         toGenerateCharPixelsPreview: Boolean = false
     ) {
-//        val textPixelSize = fontParams.fontSize
-
 //        val latinCharacters = "!8"
         val latinCharacters = getExtendedLatinCharactersString()
 //        logMsg("SK: ${latinCharacters.length}")
-//        val index = fonts[fontIndex]
         val toCreate = fontTexts.childCount == 0
         updateFontPreview(fontIndex, latinCharacters, toCheckBitmaps, toCreate)
 
@@ -450,7 +445,7 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
                         val fontParams = FONT_PARAMS[fontIndex]
                         val fontName = fontParams.fontName
                         if (charIndex < 1 || charIndex > 315) {
-                            logMsg("Render START [$fontIndex] $fontName ${fontParams.fontSize.toInt()}px [$charIndex] '${latinCharacters[charIndex]}'")
+                            logMsg("SK: Render START [$fontIndex] $fontName ${fontParams.fontSize.toInt()}px [$charIndex] '${latinCharacters[charIndex]}'")
                         }
                         val measuredWidth = fontCharTextView.measuredWidth
                         val measuredHeight = fontCharTextView.measuredHeight
@@ -464,12 +459,10 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
 
                         if (charIndex == 0) {
                             val fontSize = fontParams.fontSize.toInt()
-//                            logMsg("Render START [$fontIndex] $fontName ${fontSize}px [$charIndex] '${latinCharacters[charIndex]}'")
                             val nameParts = fontName.split('_')
                             val arrayName = "${fontName.toUpperCase()}_${fontSize}px"
                             val arrayNameCamel =
                                 "${Array(nameParts.size) { nameParts[it].capitalize() }.joinToString("")}${fontSize}px"
-//                            val arrayNameCamel = arrayName.replace("_", "")
                             appendFontFile(
                                 "package com.rudolas.mia.lcdst7920.fonts;\n" +
                                         "\npublic class $arrayNameCamel {" +
@@ -481,8 +474,8 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
                                         "            \"${arrayName.toUpperCase()}\",\n" +
                                         "            charBytes = arrayOf("
                             )
-                            pixels = Array(fontSize * 3)
-                            { Array(fontSize * 3) { false } }
+                            pixels = Array(fontSize * 3) { Array(fontSize * 3) { false } }
+
                             val downloadDir = File(Environment.getExternalStorageDirectory(), "Download")
                             val fontsDir = File(downloadDir, "Fonts")
                             if (!fontsDir.exists() && !fontsDir.mkdir()) {
@@ -496,7 +489,6 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
                                     }
                                 }
                             }
-
                         }
 
                         val divider = fontParams.divider
@@ -517,8 +509,10 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
                             var byte = 0
                             for (x in 0 until bitmapWidth * divider step divider) {
                                 val isPixelOn = charBitmap.getPixel(x, y) != 0
-                                if (/*hasNoTopOffset &&*/ isPixelOn && !pixels[y][x]) {
-                                    pixels[y][x] = true
+                                val pixelX = x / divider
+                                val pixelY = y / divider
+                                if (/*hasNoTopOffset &&*/ isPixelOn && !pixels[pixelY][pixelX]) {
+                                    pixels[pixelY][pixelX] = true
                                 }
                                 val pixel = if (isPixelOn) 1 else 0
                                 byte += pixel shl (bitmapWidth - x / divider - 1)
@@ -560,15 +554,15 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
                         if (isEmpty) {
                             val appendix = ", // blank font char '$charText' $hexAscii"
                             appendFontFile(
-                                "    {}$appendix",
-                                "    IntArray(0)$appendix"
+                                "            {}$appendix",
+                                "                IntArray(0)$appendix"
                             )
                         } else {
-                            val appendix = " ${if (isNotLastChar) "," else ""
+                            val appendix = "${if (isNotLastChar) "," else ""
                             }$spacer // [$charIndex] ${bitmapWidth}x${bitmapHeight - topOffset / divider} '$charText' $hexAscii"
                             appendFontFile(
-                                "    {$rowBytes}$appendix",
-                                "    intArrayOf($rowBytes)$appendix"
+                                "            {$rowBytes}$appendix",
+                                "                intArrayOf($rowBytes)$appendix"
                             )
                         }
                         //fontTexts.getChildAt(3).background = BitmapDrawable(resources, charBitmap)
@@ -580,7 +574,7 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
                                 writeArrayEnd()
                                 charIndex = 0
                                 val isContinuousRendering = fontIndex < FONT_PARAMS.size - 1
-                                logMsg("Render [$fontIndex] $fontName ${fontParams.fontSize.toInt()}px ${if (isContinuousRendering) "CONTINUOUS" else "SINGLE"} $charText")
+                                logMsg("SK: Render [$fontIndex] $fontName ${fontParams.fontSize.toInt()}px ${if (isContinuousRendering) "CONTINUOUS" else "SINGLE"} $charText")
                                 // continue to render next view
                                 if (isContinuousRendering) {
                                     updateFontPreview(++fontIndex, "")
@@ -647,11 +641,9 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
                      *  - Mass heat matrix text preview from all characters rendered into one map
                      */
                     private fun writeArrayEnd() {
-//                        val isKotlin = targetLang == LANG_KOTLIN
-                        appendFontFile("};", "),")
                         appendFontFile(
-                            "    private static final int[] widths = {",
-                            "            widths = intArrayOf("
+                            "    };\n    private static final int[] widths = {",
+                            "            ),\n            widths = intArrayOf("
                         )
 
                         for (i in widthsArray.indices) {
@@ -663,7 +655,9 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
                                 }
                                 val firstChar = latinCharacters[i - 9]
                                 appendHexString(stringHexBuilder, firstChar.toInt())
-                                appendFontFile("    $stringPreviewBuilder // '$firstChar'..'${latinCharacters[i]}' $stringHexBuilder")
+                                val appendix =
+                                    "$stringPreviewBuilder // '$firstChar'..'${latinCharacters[i]}' $stringHexBuilder"
+                                appendFontFile("            $appendix", "                $appendix")
                                 stringPreviewBuilder.clear()
                                 stringHexBuilder.clear()
                             }
@@ -672,23 +666,25 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
                             for (j in 0..29 - stringPreviewBuilder.length) {
                                 stringPreviewBuilder.append(' ')
                             }
-                            appendFontFile("    $stringPreviewBuilder //    ..'${latinCharacters[widthsArray.indices.last]}'")
+                            val appendix =
+                                "$stringPreviewBuilder //    ..'${latinCharacters[widthsArray.indices.last]}'"
+                            appendFontFile("            $appendix", "                $appendix")
                             stringPreviewBuilder.clear()
                         }
                         val fontParams = FONT_PARAMS[fontIndex]
                         appendFontFile(
-                            "};\n\n    public static final FontItem FONT = new FontItem(\n" +
+                            "    };\n\n    public static final FontItem FONT = new FontItem(\n" +
                                     "            \"${fontParams.fontName.toUpperCase()}_${fontParams.fontSize.toInt()}PX\",\n" +
                                     "            charsPixels,\n" +
                                     "            widths\n" +
-                                    "    );\n}\n",
-                            "        )\n    )\n    }\n}"
+                                    "    );\n}",
+                            "            )\n        )\n    }\n}"
                         )
 
                         appendFontFile(
                             "// Max Character Bitmap $pixelWidthMax x $pixelHeightMax ${
                             if (fontParams.divider > 1) "Divider ${fontParams.divider}" else ""
-                            }Offsets [Top=${fontParams.topOffset}, Bottom=${fontParams.bottomOffset}]" +
+                            } Offsets [Top=${fontParams.topOffset}, Bottom=${fontParams.bottomOffset}]" +
                                     "\n// Mass Matrix - merged text preview from all characters rendered into one map"
                         )
                         for (y in 0 until pixelHeightMax) {

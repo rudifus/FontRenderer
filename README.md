@@ -82,7 +82,7 @@ class TinyUnicode16px {
         )
     }
 }
-// Max Bitmap 14 x 13 Offsets [0, 0] 
+// Max Bitmap 14 x 13 Offsets [Top=0, Bottom=0] 
 // Mass Matrix - merged text preview from all characters rendered into one map
 // Mass Matrix ############## 0
 // Mass Matrix ############## 1
