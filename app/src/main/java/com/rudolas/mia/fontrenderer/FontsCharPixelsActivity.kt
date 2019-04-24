@@ -28,12 +28,15 @@ import pub.devrel.easypermissions.AfterPermissionGranted
  * class to preview available true type fonts with extended latin characters such as diacritics.
  * For preselected font there is rendered detailed preview of several characters for font text sizes from 5px to 64 px.
  * User can then choose which text size matches the native font resolution the best.
- * For such native text size complete ascii characters map is rendered into byte pixels for java/kotlin code use. E.g. for raspbery pi, android things java/kotlin apps.
- * C code to be supported on request
+ * For such native text size complete ascii characters map is rendered into byte pixels for java/kotlin code use. E.g. for raspberry pi, android things java/kotlin apps.
+ * C code to be supported on request.
+ *
+ * Activity main features:
+ * - preview available true type fonts with extended latin characters such as diacritics.
+ * - preview selected ASCII chars in font sizes from 5px to 64 px to choose the best match for the native font size resolution
+ * - render complete ascii characters map into byte pixels array for java/kotlin code use.
  *
  * Actual supported ASCII characters:  2 ascii ranges merged into array of char pixel bytes: one for kotlin and one for java
- * <p>
- *
  * - ASCII 32-126    space .. ~
  * - ASCII 161..382  ¡ .. À .. ž
  * - optionally additional greek and coptic, armenian, cyrillic, hebrew or arabic ASCII subsets could be enabled
@@ -75,6 +78,7 @@ import pub.devrel.easypermissions.AfterPermissionGranted
  *         }
  *     }
  *     // Max Bitmap 14 x 13 Offsets [0, 0]
+ *     // Mass Matrix - merged text preview from all characters rendered into one map
  *     // Mass Matrix ############## 0
  *     // Mass Matrix ############## 1
  *     // Mass Matrix ############## 2
@@ -663,7 +667,8 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
                         appendFontFile(
                             "// Max Character Bitmap $pixelWidthMax x $pixelHeightMax ${
                             if (fontParams.divider > 1) "Divider ${fontParams.divider}" else ""
-                            }Offsets [Top=${fontParams.topOffset}, Bottom=${fontParams.bottomOffset}]"
+                            }Offsets [Top=${fontParams.topOffset}, Bottom=${fontParams.bottomOffset}]" +
+                                    "\n// Mass Matrix - merged text preview from all characters rendered into one map"
                         )
                         for (y in 0 until pixelHeightMax) {
                             for (x in 0 until pixelWidthMax) {
@@ -1031,7 +1036,14 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
 
         private const val ACTION_DETAIL = "ACTION_DETAIL"
 
+        /**
+         * supported basic ascii characters
+         */
         private val ASCII_LATIN_RANGE1 = 32..126    // space .. ~
+        /**
+         * supported extended latin ascii chars
+         * optionally additional greek and coptic, armenian, cyrillic, hebrew or arabic ASCII subsets could be enabled
+         */
         private val ASCII_LATIN_RANGE2 = 161..382 // ¡ .. À .. ž
         private val ASCII_LATIN_COUNT =
             ASCII_LATIN_RANGE1.last - ASCII_LATIN_RANGE1.first + ASCII_LATIN_RANGE2.last - ASCII_LATIN_RANGE2.first + 2
