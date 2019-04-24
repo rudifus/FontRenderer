@@ -41,6 +41,7 @@ To enable logcat log just uncomment the following `logMsg` code line in `appendF
  }
 ```
 
+* Hint: To avoid compilation troubles with generated font bytes arrays, e.g. java code too large, keep the render font size as low as possible to match native font size or to render non excessive bitmaps.
 ### Sample output
 
 There are generated pixel bytes for each character from supported ASCII range per row. Bytes width and height corresponds to rendered native true type font size.
@@ -63,15 +64,36 @@ There are generated pixel bytes for each character from supported ASCII range pe
 output kotlin code sample:
 
 ```
-private val FONT_TINY_UNICODE_16PX = arrayOf( // FONT 16px tiny_unicode.ttf
-    intArrayOf(0x00, 0x00, 0x00, 0x1C, 0x22, 0x1C, 0x22, 0x22, 0x1C, 0x00, 0x00, 0x00), // 6x12 '8' 0x38
-    intArrayOf(0x00, 0x00, 0x00, 0x08, 0x08, 0x08, 0x08, 0x00, 0x08, 0x00, 0x00, 0x00), // 6x12 '!' 0x21
-    ...
-)
-private val FONT_TINY_UNICODE_16PX_WIDTH = intArrayOf(      //  rendered ascii char pixels width, mono fonts have fixed size chars
-    5,2,4,6,5,4,6,2,3,3,           // ' '..')' 0x20
-    4,4,3,4,2,4,5,3,5,5,           // '*'..'3' 0x2A
-    5,5,5,5,5,5,2,3,3,5,           // '4'..'=' 0x34
-    ...
-)
+class TinyUnicode16px {
+    companion object {
+        val font = FontItem( // FONT 16px tiny_unicode.ttf
+            "TINY_UNICODE_16PX",
+            charBytes =  = arrayOf( // FONT 16px tiny_unicode.ttf
+                intArrayOf(0x00, 0x00, 0x00, 0x1C, 0x22, 0x1C, 0x22, 0x22, 0x1C, 0x00, 0x00, 0x00), // 6x12 '8' 0x38
+                intArrayOf(0x00, 0x00, 0x00, 0x08, 0x08, 0x08, 0x08, 0x00, 0x08, 0x00, 0x00, 0x00), // 6x12 '!' 0x21
+                ...
+            ),
+            widths = intArrayOf(      //  rendered ascii char pixels width, mono fonts have fixed size chars
+                5,2,4,6,5,4,6,2,3,3,           // ' '..')' 0x20
+                4,4,3,4,2,4,5,3,5,5,           // '*'..'3' 0x2A
+                5,5,5,5,5,5,2,3,3,5,           // '4'..'=' 0x34
+                ...
+            )
+        )
+    }
+}
+// Max Bitmap 14 x 13 Offsets [0, 0] 
+// Mass Matrix ############## 0
+// Mass Matrix ############## 1
+// Mass Matrix ############## 2
+// Mass Matrix ############## 3
+// Mass Matrix ############## 4
+// Mass Matrix ############## 5
+// Mass Matrix ############## 6
+// Mass Matrix ############## 7
+// Mass Matrix ############## 8
+// Mass Matrix ############## 9
+// Mass Matrix ############## 10
+// Mass Matrix ############.. 11
+// Mass Matrix ##########.... 12
 ```

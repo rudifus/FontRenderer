@@ -32,34 +32,62 @@ import pub.devrel.easypermissions.AfterPermissionGranted
  * C code to be supported on request
  *
  * Actual supported ASCII characters:  2 ascii ranges merged into array of char pixel bytes: one for kotlin and one for java
- *     ASCII 32-126    space .. ~
- *     ASCII 161..382  ¡ .. À .. ž
- *     optionally additional greek and coptic, armenian, cyrillic, hebrew or arabic ASCII subsets could be enabled
+ * <p>
+ *
+ * - ASCII 32-126    space .. ~
+ * - ASCII 161..382  ¡ .. À .. ž
+ * - optionally additional greek and coptic, armenian, cyrillic, hebrew or arabic ASCII subsets could be enabled
  *
  * listed:
- * " !"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
- * "¡¢£¤¥¦§¨©ª«¬­®¯°±²³´µ¶·¸¹º»¼½¾¿ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþÿĀāĂăĄą"
- * "ĆćĈĉĊċČčĎďĐđĒēĔĕĖėĘęĚěĜĝĞğĠġĢģĤĥĦħĨĩĪīĬĭĮįİıĲĳĴĵĶķĸĹĺĻļĽľĿŀŁłŃńŅņŇňŉŊŋŌōŎŏŐőŒœŔŕŖŗŘřŚśŜŝŞşŠšŢţŤťŦŧŨũŪūŬŭŮůŰűŲųŴŵŶŷŸŹźŻżŽž"
  *
- * result code arrays are stored into SDcard directory /sdcard/Download/Fonts/    e.g. filename FONT_TINY_UNICODE_16PX.txt
+ * " !"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~
+ * ¡¢£¤¥¦§¨©ª«¬­®¯°±²³´µ¶·¸¹º»¼½¾¿ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþÿĀāĂăĄą
+ * ĆćĈĉĊċČčĎďĐđĒēĔĕĖėĘęĚěĜĝĞğĠġĢģĤĥĦħĨĩĪīĬĭĮįİıĲĳĴĵĶķĸĹĺĻļĽľĿŀŁłŃńŅņŇňŉŊŋŌōŎŏŐőŒœŔŕŖŗŘřŚśŜŝŞşŠšŢţŤťŦŧŨũŪūŬŭŮůŰűŲųŴŵŶŷŸŹźŻżŽž"
+ *
+ * Result code arrays are stored into SDcard directory /sdcard/Download/Fonts/    e.g. filename FONT_TINY_UNICODE_16PX.txt
  *
  * for each character is generated pixel bytes row by row upon native true type font text size,
+ *
  *    e.g 6x12 pixels matrix, corresponding to width and height of rendered char with native font size 16 pixels
+ * Hint: To avoid compilation troubles with generated font bytes arrays, e.g. java code too large,
+ * keep the render font size as low as possible to match native font size or to render non excessive bitmaps.
  *
- * output kotlin code sample :
+ * Output kotlin code sample :
  *
+ * <code>
  *
- * private val FONT_TINY_UNICODE_16PX = arrayOf( // FONT 16px tiny_unicode.ttf
- *     intArrayOf(0x00, 0x00, 0x00, 0x1C, 0x22, 0x1C, 0x22, 0x22, 0x1C, 0x00, 0x00, 0x00), // 6x12 '8' 0x38
- *     intArrayOf(0x00, 0x00, 0x00, 0x08, 0x08, 0x08, 0x08, 0x00, 0x08, 0x00, 0x00, 0x00), // 6x12 '!' 0x21
- *     ...
- * )
- * private val FONT_TINY_UNICODE_16PX_WIDTH = intArrayOf(      //  rendered ascii char pixels width, mono fonts have fixed size chars
- *     5,2,4,6,5,4,6,2,3,3,           // ' '..')' 0x20
- *     4,4,3,4,2,4,5,3,5,5,           // '*'..'3' 0x2A
- *     5,5,5,5,5,5,2,3,3,5,           // '4'..'=' 0x34
- *     ...
- * )
+ *      class TinyUnicode16px {
+ *          companion object {
+ *              val font = FontItem( // FONT 16px tiny_unicode.ttf
+ *                  "TINY_UNICODE_16PX",
+ *                  charBytes =  = arrayOf( // FONT 16px tiny_unicode.ttf
+ *                      intArrayOf(0x00, 0x00, 0x00, 0x1C, 0x22, 0x1C, 0x22, 0x22, 0x1C, 0x00, 0x00, 0x00), // 6x12 '8' 0x38
+ *                      intArrayOf(0x00, 0x00, 0x00, 0x08, 0x08, 0x08, 0x08, 0x00, 0x08, 0x00, 0x00, 0x00), // 6x12 '!' 0x21
+ *                      ...
+ *                  ),
+ *                  widths = intArrayOf(      //  rendered ascii char pixels width, mono fonts have fixed size chars
+ *                      5,2,4,6,5,4,6,2,3,3,           // ' '..')' 0x20
+ *                      4,4,3,4,2,4,5,3,5,5,           // '*'..'3' 0x2A
+ *                      5,5,5,5,5,5,2,3,3,5,           // '4'..'=' 0x34
+ *                      ...
+ *                  )
+ *              )
+ *         }
+ *     }
+ *     // Max Bitmap 14 x 13 Offsets [0, 0]
+ *     // Mass Matrix ############## 0
+ *     // Mass Matrix ############## 1
+ *     // Mass Matrix ############## 2
+ *     // Mass Matrix ############## 3
+ *     // Mass Matrix ############## 4
+ *     // Mass Matrix ############## 5
+ *     // Mass Matrix ############## 6
+ *     // Mass Matrix ############## 7
+ *     // Mass Matrix ############## 8
+ *     // Mass Matrix ############## 9
+ *     // Mass Matrix ############## 10
+ *     // Mass Matrix ############.. 11
+ *     // Mass Matrix ##########.... 12
  *
  */
 class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
@@ -122,6 +150,9 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
         return super.onCreateOptionsMenu(menu)
     }
 
+    /**
+     * back press and Render action bar items handling
+     */
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
             android.R.id.home -> onBackPressed().let { true }
@@ -130,6 +161,9 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
         }
     }
 
+    /**
+     * easy permissions dynamic request handling
+     */
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
 
@@ -137,6 +171,9 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
         EasyPermissions.onRequestPermissionsResult(requestCode, permissions, grantResults, this)
     }
 
+    /**
+     * easy permissions dynamic request result processing
+     */
     @AfterPermissionGranted(PERMISSION_WRITE_STORAGE)
     private fun methodRequiresStorageWritePermission() {
         val perms = arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE)
@@ -152,6 +189,9 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
         }
     }
 
+    /**
+     * Entry point to launch rendering of all supported ascii chars into target language files
+     */
     private fun startRenderFont() {
         fontTexts.viewTreeObserver.removeOnGlobalLayoutListener(onGlobalLayoutListenerBitmapsCheck)
         onGlobalLayoutListenerBitmapsCheck = null
@@ -220,46 +260,66 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
      * generate font character bitmaps as kotlin AND java integer arrays. Output is into logCat.
      * Optionally also bitmap pixels preview for each font char array item is generated into output.
      * e.g.
-     *    KOTLIN array :
-     * private val FONT_x8 = arrayOf( // FONT_16px aerxtabs_memesbruh03.ttf
-     *        char '!' pixels preview - optional
-     *     // 000000 [0]
-     *     // 000000 [1]
-     *     // 000000 [2]
-     *     // 001000 [3]
-     *     // 001000 [4]
-     *     // 001000 [5]
-     *     // 001000 [6]
-     *     // 000000 [7]
-     *     // 001000 [8]
-     *     // 000000 [9]
-     *     // 000000 [10]
-     *     // 000000 [11]
-     *     intArrayOf(0x00, 0x00, 0x00, 0x08, 0x08, 0x08, 0x08, 0x00, 0x08, 0x00, 0x00, 0x00), // 6x12 '!' 0x21
-     *        char '8' pixels preview - optional
-     *     // 000000 [0]
-     *     // 000000 [1]
-     *     // 000000 [2]
-     *     // 011100 [3]
-     *     // 100010 [4]
-     *     // 011100 [5]
-     *     // 100010 [6]
-     *     // 100010 [7]
-     *     // 011100 [8]
-     *     // 000000 [9]
-     *     // 000000 [10]
-     *     // 000000 [11]
-     *     intArrayOf(0x00, 0x00, 0x00, 0x1C, 0x22, 0x1C, 0x22, 0x22, 0x1C, 0x00, 0x00, 0x00), // 6x12 '8' 0x38
-     *     ...
-     * )
-     *   JAVA array :
-     * private static final int[][] FONT_x8 = { // FONT_16px aerxtabs_memesbruh03.ttf
-     *     // ... char pixels preview - optional
-     *     {0x00, 0x00, 0x00, 0x08, 0x08, 0x08, 0x08, 0x00, 0x08, 0x00, 0x00, 0x00}, // 6x12 '!' 0x21
-     *     // ... char pixels preview - optional
-     *     {0x00, 0x00, 0x00, 0x1C, 0x22, 0x1C, 0x22, 0x22, 0x1C, 0x00, 0x00, 0x00}, // 6x12 '8' 0x38
-     *     ...
-     * }
+     *
+     * KOTLIN array :
+     * <code>
+     *
+     *      class TinyUnicode16px {
+     *          companion object {
+     *              val font = FontItem( // FONT 16px tiny_unicode.ttf
+     *              ...
+     *              // char '!' pixels preview - optional
+     *              // 000000 [0]
+     *              // 000000 [1]
+     *              // 000000 [2]
+     *              // 001000 [3]
+     *              // 001000 [4]
+     *              // 001000 [5]
+     *              // 001000 [6]
+     *              // 000000 [7]
+     *              // 001000 [8]
+     *              // 000000 [9]
+     *              // 000000 [10]
+     *              // 000000 [11]
+     *              intArrayOf(0x00, 0x00, 0x00, 0x08, 0x08, 0x08, 0x08, 0x00, 0x08, 0x00, 0x00, 0x00), // 6x12 '!' 0x21
+     *              // char '8' pixels preview - optional
+     *              // 000000 [0]
+     *              // 000000 [1]
+     *              // 000000 [2]
+     *              // 011100 [3]
+     *              // 100010 [4]
+     *              // 011100 [5]
+     *              // 100010 [6]
+     *              // 100010 [7]
+     *              // 011100 [8]
+     *              // 000000 [9]
+     *              // 000000 [10]
+     *              // 000000 [11]
+     *              intArrayOf(0x00, 0x00, 0x00, 0x1C, 0x22, 0x1C, 0x22, 0x22, 0x1C, 0x00, 0x00, 0x00), // 6x12 '8' 0x38
+     *              ...
+     *      )
+     * </code>
+     *
+     * JAVA array :
+     * <code>
+     *
+     *      package fonts;
+     *      public class TinyUnicode16px {
+     *          private static final int[][] charsPixels = {
+     *              // ... char pixels preview - optional
+     *              {0x00, 0x00, 0x00, 0x08, 0x08, 0x08, 0x08, 0x00, 0x08, 0x00, 0x00, 0x00}, // 6x12 '!' 0x21
+     *              // ... char pixels preview - optional
+     *              {0x00, 0x00, 0x00, 0x1C, 0x22, 0x1C, 0x22, 0x22, 0x1C, 0x00, 0x00, 0x00}, // 6x12 '8' 0x38
+     *              ...
+     *          };
+     *
+     *          public static final FontItem FONT = new FontItem(
+     *              "TINY_UNICODE_16PX",
+     *              charsPixels,
+     *              widths
+     *          );
+     *      }
+     * </code>
      */
     private fun generateFontCharactersCodeArray(
 //        fontIndex: Int,
@@ -282,6 +342,16 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
         }
     }
 
+    /**
+     * global layout listener used to await char layout formatting according to requested font type and font size.
+     * It loops through either all font sizes from 5px until 64px or supported ascii font chars
+     * Also whole font rendering here is repeated for all target languages supported.
+     *
+     * @param latinCharacters string as an array of latin ascii chars to render
+     * @param toCheckBitmaps true to preview 5px..64px font sizes into rendered char bitmaps, otherwise false to avoid bitmaps rendering
+     * @param toGenerateCharPixelsPreview true to generate text form character pixels map , where preview '#' as pixel on and '.' as an empty pixel
+     *
+     */
     private fun addGlobalLayoutListener(
         latinCharacters: String,
         toCheckBitmaps: Boolean,
@@ -375,19 +445,18 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
                             val fontSize = fontParams.fontSize.toInt()
                             val nameParts = fontName.split('_')
                             val arrayName = "${fontName.toUpperCase()}_${fontSize}px"
-                            val arrayNameCamel = "${Array(nameParts.size) { nameParts[it].capitalize() }.joinToString("")}${fontSize}px"
+                            val arrayNameCamel =
+                                "${Array(nameParts.size) { nameParts[it].capitalize() }.joinToString("")}${fontSize}px"
 //                            val arrayNameCamel = arrayName.replace("_", "")
                             appendFontFile(
                                 "${when (targetLang) {
                                     LANG_JAVA -> "package com.rudolas.mia.lcdst7920.fonts;\n" +
-                                            "\nimport com.rudolas.mia.lcdst7920.SpiST9720.Companion.FontItem;\n" +
                                             "\npublic class $arrayNameCamel {" +
                                             "\n    private  static final int[][] charsPixels = {"
                                     else -> "package com.rudolas.mia.lcdst7920.fonts\n" +
-                                            "\nimport com.rudolas.mia.lcdst7920.SpiST9720\n" +
                                             "\nclass $arrayNameCamel {\n" +
                                             "    companion object {\n" +
-                                            "        val font = SpiST9720.Companion.FontItem( // FONT ${fontSize}px $fontName.ttf\n" +
+                                            "        val font = FontItem( // FONT ${fontSize}px $fontName.ttf\n" +
                                             "            \"${arrayName.toUpperCase()}\",\n" +
                                             "            charBytes = arrayOf("
                                 }} "
@@ -415,8 +484,8 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
                         val bitmapHeight = (charBitmap.height - fontParams.bottomOffset) / divider
                         widthsArray[charIndex] = bitmapWidth
 
-                        val hasNoTopOffset = fontParams.topOffset == 0
-                        if (hasNoTopOffset && charIndex != 64) {
+//                        val hasNoTopOffset = fontParams.topOffset == 0
+                        if (/*hasNoTopOffset &&*/ charIndex != 64) {
                             pixelHeightMax = max(bitmapHeight, pixelHeightMax)
                             pixelWidthMax = max(bitmapWidth, pixelWidthMax)
 //                            logMsg("SK: Max bitmap $pixelWidthMax x $pixelHeightMax '${fontCharTextView.text}'")
@@ -426,7 +495,7 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
                             var byte = 0
                             for (x in 0 until bitmapWidth * divider step divider) {
                                 val isPixelOn = charBitmap.getPixel(x, y) != 0
-                                if (hasNoTopOffset && isPixelOn && !pixels[y][x]) {
+                                if (/*hasNoTopOffset &&*/ isPixelOn && !pixels[y][x]) {
                                     pixels[y][x] = true
                                 }
                                 val pixel = if (isPixelOn) 1 else 0
@@ -486,14 +555,14 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
                         when {
                             ++charIndex < latinCharacters.length -> assignLatinCharToRender()
                             targetLang == LANG_KOTLIN -> {
-                                writeArrayEnd(hasNoTopOffset)
+                                writeArrayEnd()
                                 targetLang++
                                 charIndex = 0
                                 assignLatinCharToRender()
                             }
                             else -> {
                                 fontTexts.viewTreeObserver.removeOnGlobalLayoutListener(this)
-                                writeArrayEnd(hasNoTopOffset)
+                                writeArrayEnd()
                                 fontLatinCharsView.text = skChars
                                 charIndex = 0
                                 setCharTextSize(5f)
@@ -501,6 +570,9 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
                         }
                     }
 
+                    /**
+                     * provides target lang prefix, file extension
+                     */
                     private fun getLangPrefix(): String {
                         return when (targetLang) {
                             LANG_JAVA -> "java"
@@ -510,11 +582,18 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
                         }
                     }
 
+                    /**
+                     * appends string line to output file string builder - to speed up file generation.
+                     * It will be flushed to physical sdcard file at the end of rendering
+                     */
                     private fun appendFontFile(line: String) {
                         stringFileBuilder.append(line).append("\n")
 //                        logMsg("SK: $line")
                     }
 
+                    /**
+                     * appends hex form of provided ascii char into a given string builder
+                     */
                     private fun appendHexString(stringBuilder: StringBuilder, ascii: Int) {
                         val hexString = Integer.toHexString(ascii).toUpperCase()
                         stringBuilder.append("0x")
@@ -522,11 +601,23 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
                             .append(hexString)
                     }
 
+                    /**
+                     * assigns ascii char to preview text view for next rendering loop
+                     */
                     private fun assignLatinCharToRender() {
                         fontCharTextView.text = latinCharacters[charIndex].toString()
                     }
 
-                    private fun writeArrayEnd(hasNoTopOffset: Boolean) {
+                    /**
+                     * appends end of array at an font chars map rendering or font widths array generation
+                     * Following parts are added
+                     *
+                     *  - end of array
+                     *  - java FontItem FONT object
+                     *  - Max character bitmap info and
+                     *  - Mass heat matrix text preview from all characters rendered into one map
+                     */
+                    private fun writeArrayEnd() {
                         val isKotlin = targetLang == LANG_KOTLIN
                         appendFontFile(if (isKotlin) ")," else "};")
                         appendFontFile(
@@ -569,16 +660,19 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
                         if (!isKotlin) {
                             appendFontFile("")
                         }
-                        if (hasNoTopOffset) {
-                            appendFontFile("// Max Bitmap $pixelWidthMax x $pixelHeightMax")
-                            for (y in 0 until pixelHeightMax) {
-                                for (x in 0 until pixelWidthMax) {
-                                    stringPreviewBuilder.append(if (pixels[y][x]) '#' else '.')
-                                }
-                                appendFontFile("// Mass Matrix $stringPreviewBuilder $y")
-                                stringPreviewBuilder.clear()
+                        appendFontFile(
+                            "// Max Character Bitmap $pixelWidthMax x $pixelHeightMax ${
+                            if (fontParams.divider > 1) "Divider ${fontParams.divider}" else ""
+                            }Offsets [Top=${fontParams.topOffset}, Bottom=${fontParams.bottomOffset}]"
+                        )
+                        for (y in 0 until pixelHeightMax) {
+                            for (x in 0 until pixelWidthMax) {
+                                stringPreviewBuilder.append(if (pixels[y][x]) '#' else '.')  // preview '#' as pixel on and '.' as an empty pixel
                             }
+                            appendFontFile("// Mass Matrix $stringPreviewBuilder $y")
+                            stringPreviewBuilder.clear()
                         }
+                        // write file content builder to output file
                         fontFile.sink(false).buffer().use {
                             it.write(stringFileBuilder.toString().encodeUtf8())
                         }
@@ -588,6 +682,9 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
             })
     }
 
+    /**
+     * assigns requested font size into font char text view used for rendering
+     */
     private fun setCharTextSize(textSize: Float) {
         fontCharTextView.setTextSize(
             TypedValue.COMPLEX_UNIT_PX,
@@ -595,6 +692,9 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
         )
     }
 
+    /**
+     * updates font character preview to specified font ascii char and/or to a given font size
+     */
     private fun updateFontPreview(
         index: Int,
         latinCharacters: String,
@@ -664,6 +764,11 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
     private fun inflateTextView(@LayoutRes layoutResId: Int = R.layout.text_view) =
         layoutInflater.inflate(layoutResId, fontTexts, false) as TextView
 
+    /**
+     * rendering related data for each true type font found within res/font
+     * In case of adding a new true type font resource, an instance of this object is recommended to be add into FONT_PARAMS
+     * to enable font rendering and preview
+     */
     private data class FontParams(
         internal var divider: Int = 1,
         internal var topOffset: Int = 0,
@@ -675,12 +780,19 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
 
     companion object {
 
-        // 43 graph , 52 led calculator, 4 aerxtabs   28 fonts
+        /**
+         * filtered fonts array, used internally for testing
+         * 43 graph , 52 led calculator, 4 aerxtabs   28 fonts
+         */
         private val fonts = arrayOf(
             4, 6, 10, 18, 23, 26, 31, 36, 37, 40, 42, 43, 49, 52, 61, 65, 69, 71, 75, 79, 80, 81, 82, 86 /*poco*/,
             88, 91, 92, 123
         )
 
+        /**
+         * array of rendering related data for all provided and supported font resources
+         * for all new font resources, here the font related data must be added or altered
+         */
         private val FONT_PARAMS = arrayOf(
             FontParams(
                 fontSize = 20f, fontRes = R.font.adbxtra, fontName = "adbxtra",
@@ -847,7 +959,8 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
             FontParams(fontSize = 8f, fontRes = R.font.rev_mini_pixel, fontName = "rev_mini_pixel"),  //1px
             FontParams(fontSize = 41f, fontRes = R.font.rififi_serif, fontName = "rififi_serif"),
             FontParams(fontSize = 8f, fontRes = R.font.rix, fontName = "rix"),
-            FontParams(fontSize = 21f, fontRes = R.font.rntg_larger, fontName = "rntg_larger",
+            FontParams(
+                fontSize = 21f, fontRes = R.font.rntg_larger, fontName = "rntg_larger",
                 divider = 2, topOffset = 0, bottomOffset = 0
             ),  //1px
             FontParams(
@@ -862,9 +975,10 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
             ), //1px
             FontParams(fontSize = 1f, fontRes = R.font.rtt_redstar_8, fontName = "rtt_redstar_8"),
             FontParams(fontSize = 16f, fontRes = R.font.savior1, fontName = "savior1"),  //1px
-            FontParams(fontSize = 16f, fontRes = R.font.scifibit, fontName = "scifibit",
+            FontParams(
+                fontSize = 16f, fontRes = R.font.scifibit, fontName = "scifibit",
                 divider = 2, topOffset = 0, bottomOffset = 0
-                ),  //1px
+            ),  //1px
             FontParams(fontSize = 16f, fontRes = R.font.sevastopol_interface, fontName = "sevastopol_interface"),  //1px
             FontParams(fontSize = 1f, fontRes = R.font.sg04, fontName = "sg04"),
             FontParams(fontSize = 16f, fontRes = R.font.sgk075, fontName = "sgk075"),  //1px
@@ -923,6 +1037,12 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
             ASCII_LATIN_RANGE1.last - ASCII_LATIN_RANGE1.first + ASCII_LATIN_RANGE2.last - ASCII_LATIN_RANGE2.first + 2
         //        val charsToShowAsBitmaps = "8"
 //        private const val charsToShowAsBitmaps = "8Ź"
+        /**
+         * ascii characters used for bitmap chars preview for font all font sizes from range 5px .. 64px
+         * usually fonts are rendered for font sizes up to 24px, bigger fonts izes lead to excessive code generation for target languages.
+         * To avoid font bytes code compilation troubles, e.g. java code too large,
+         * keep font sizes to match native font sizes or as low as possible to render non excessive bitmap sizes.
+         */
         private const val charsToShowAsBitmaps = "ýô8Ź0#"
         private const val skChars = "8Ź!01#\$/@QÁŽČčĎŢţŤťáäýóô"
 //        private const val charsToShowAsBitmaps = "8Ź!01#\$/@QÁŽČčĎŢţŤťáäýóôaefghijklmnpqrwxy"
