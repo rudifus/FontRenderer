@@ -1,6 +1,7 @@
 package com.rudolas.mia.fontrenderer
 
 import android.Manifest
+import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.support.v7.app.AppCompatActivity
@@ -11,8 +12,10 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.os.Environment
 import android.support.annotation.LayoutRes
+import android.support.v7.app.AlertDialog
 import android.util.TypedValue
 import android.view.*
+import android.widget.ArrayAdapter
 import android.widget.ImageView
 import android.widget.LinearLayout
 import okio.ByteString.Companion.encodeUtf8
@@ -23,6 +26,7 @@ import kotlin.math.max
 import kotlin.text.StringBuilder
 import pub.devrel.easypermissions.EasyPermissions
 import pub.devrel.easypermissions.AfterPermissionGranted
+import kotlin.math.min
 
 /**
  * class to preview available true type fonts with extended latin characters such as diacritics.
@@ -111,7 +115,6 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
 
     private var onGlobalLayoutListenerBitmapsCheck: ViewTreeObserver.OnGlobalLayoutListener? = null
     private var fontIndex = 0
-    //    private var fontIndexToRender = 0
     private lateinit var fontCharTextView: TextView
     private lateinit var fontTitleTextView: TextView
     private lateinit var fontLatinCharsView: TextView
@@ -148,8 +151,11 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
         methodRequiresStorageWritePermission()
     }
 
-    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.render, menu)
+        if (!isDetailIntentAction()) {
+            menu.findItem(R.id.menuRender).isVisible = false
+        }
 
         return super.onCreateOptionsMenu(menu)
     }
@@ -160,6 +166,7 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
             android.R.id.home -> onBackPressed().let { true }
+            R.id.menuGoTo -> showGoToFontDialog().let { true }
             R.id.menuRender -> startRenderFont().let { true }
             else -> super.onOptionsItemSelected(item)
         }
@@ -236,6 +243,13 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
 //        for (index in fonts.iterator()) {
             updateFontPreview(index, latinCharacters, forceCreate = true)
         }
+//        fontTexts.viewTreeObserver.addOnGlobalLayoutListener(
+//            object : ViewTreeObserver.OnGlobalLayoutListener {
+//                override fun onGlobalLayout() {
+//                    fontTexts.viewTreeObserver.removeOnGlobalLayoutListener(this)
+//                }
+//            })
+
         /*fontTexts.viewTreeObserver.addOnGlobalLayoutListener(
             object : ViewTreeObserver.OnGlobalLayoutListener {
                 override fun onGlobalLayout() {
@@ -435,6 +449,9 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
 
                         val fontParams = FONT_PARAMS[fontIndex]
                         val fontName = fontParams.fontName
+                        if (charIndex < 1 || charIndex > 315) {
+                            logMsg("Render START [$fontIndex] $fontName ${fontParams.fontSize.toInt()}px [$charIndex] '${latinCharacters[charIndex]}'")
+                        }
                         val measuredWidth = fontCharTextView.measuredWidth
                         val measuredHeight = fontCharTextView.measuredHeight
                         //                logMsg("SK: [$index] $fontName [$charIndex] ${fontCharTextView.text}")
@@ -447,6 +464,7 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
 
                         if (charIndex == 0) {
                             val fontSize = fontParams.fontSize.toInt()
+//                            logMsg("Render START [$fontIndex] $fontName ${fontSize}px [$charIndex] '${latinCharacters[charIndex]}'")
                             val nameParts = fontName.split('_')
                             val arrayName = "${fontName.toUpperCase()}_${fontSize}px"
                             val arrayNameCamel =
@@ -479,7 +497,6 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
                                 logMsg("Font file to be created ${fontFile.absolutePath}")
                             }
                         }
-
 
                         val divider = fontParams.divider
                         fontCharTextView.draw(Canvas(charBitmap))
@@ -565,11 +582,20 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
                                 assignLatinCharToRender()
                             }
                             else -> {
-                                fontTexts.viewTreeObserver.removeOnGlobalLayoutListener(this)
                                 writeArrayEnd()
-                                fontLatinCharsView.text = skChars
                                 charIndex = 0
-                                setCharTextSize(5f)
+                                val isContinuousRendering = fontIndex < FONT_PARAMS.size - 1
+                                logMsg("Render [$fontIndex] $fontName ${fontParams.fontSize.toInt()}px ${if (isContinuousRendering) "CONTINUOUS" else "SINGLE"} $charText")
+                                // continue to render next view
+                                if (isContinuousRendering) {
+                                    targetLang = LANG_KOTLIN
+                                    updateFontPreview(++fontIndex,"")
+                                    assignLatinCharToRender()
+                                } else {
+                                    fontTexts.viewTreeObserver.removeOnGlobalLayoutListener(this)
+                                    fontLatinCharsView.text = skChars
+                                    setCharTextSize(5f)
+                                }
                             }
                         }
                     }
@@ -764,6 +790,48 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
             strBuilder.append(int.toChar())
         }
         return strBuilder.toString()
+    }
+
+    /**
+     * show dialog to choose which font to scroll to
+     */
+    private fun showGoToFontDialog() {
+        AlertDialog.Builder(this)
+            .setAdapter(
+                DialogListAdapter(
+                    this,
+                    R.layout.font_item,
+                    R.id.fontItemName,
+                    FONT_PARAMS.mapIndexed { index, fontParams -> "$index. ${fontParams.fontName} ${fontParams.fontSize.toInt()}px" }.toMutableList()
+                )
+            ) { _, position ->
+                if (isDetailIntentAction()) {
+                    fontIndex = position
+                    previewOrGeneratePixelCodeArrays(false)
+                } else {
+                    fontsScroller.smoothScrollTo(
+                        0,
+                        fontTexts.getChildAt(min(position, fontTexts.childCount) * 4).bottom
+                    )
+                }
+            }
+            .show()
+    }
+
+    private class DialogListAdapter(
+        context: Context,
+        resource: Int,
+        textViewResourceId: Int,
+        objects: MutableList<String>
+    ) : ArrayAdapter<String>(context, resource, textViewResourceId, objects) {
+
+        override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
+            val fontNameFrame = super.getView(position, convertView, parent) as ViewGroup
+            (fontNameFrame.getChildAt(0) as TextView).typeface =
+                context.resources.getFont(FONT_PARAMS[position].fontRes)
+
+            return fontNameFrame
+        }
     }
 
     private fun inflateTextView(@LayoutRes layoutResId: Int = R.layout.text_view) =
@@ -1015,7 +1083,323 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
             ),  //1px
             FontParams(fontSize = 8f, fontRes = R.font.uni05_53, fontName = "uni05_53"),
             FontParams(fontSize = 9f, fontRes = R.font.volter28goldfish_29, fontName = "volter28goldfish_29"),  //1px
-            FontParams(fontSize = 8f, fontRes = R.font.zepto_regular, fontName = "zepto_regular") //1px
+            FontParams(fontSize = 8f, fontRes = R.font.zepto_regular, fontName = "zepto_regular"), //1px
+            //  *******************************************
+            //   NEW   FONTS  1
+            //  *******************************************
+            FontParams(fontSize = 34f, fontRes = R.font.a_futuricalt_thin, fontName = "a_futuricalt_thin"),  // 1px
+            FontParams(
+                fontSize = 16f,
+                fontRes = R.font.accius_t_ot_light_condensed,
+                fontName = "accius_t_ot_light_condensed"
+            ),  // 1px
+            FontParams(fontSize = 16f, fontRes = R.font.aclonica, fontName = "aclonica"),  // 1px
+            FontParams(
+                fontSize = 16f,
+                fontRes = R.font.advanced_sans_serif_7,
+                fontName = "advanced_sans_serif_7"
+            ),    // 1px
+            FontParams(fontSize = 16f, fontRes = R.font.air_conditioner, fontName = "air_conditioner"),  // 1px
+            FontParams(fontSize = 16f, fontRes = R.font.amita_regular, fontName = "amita_regular"),  // 1px
+            FontParams(fontSize = 16f, fontRes = R.font.anyway_light, fontName = "anyway_light"),  // 1px
+            FontParams(fontSize = 16f, fontRes = R.font.apple_chancery, fontName = "apple_chancery"),  // 1px
+            FontParams(fontSize = 16f, fontRes = R.font.arimo_regular, fontName = "arimo_regular"),  // 1px
+            FontParams(fontSize = 16f, fontRes = R.font.artcraft_urw_treg, fontName = "artcraft_urw_treg"),  // 1px
+            FontParams(fontSize = 16f, fontRes = R.font.augie, fontName = "augie"),  // 1px
+            FontParams(fontSize = 16f, fontRes = R.font.baksheesh_thin, fontName = "baksheesh_thin"),  // 1px
+            FontParams(fontSize = 16f, fontRes = R.font.boring_boring, fontName = "boring_boring"),  // 1px
+            FontParams(
+                fontSize = 16f,
+                fontRes = R.font.calligraffitti_regular,
+                fontName = "calligraffitti_regular"
+            ),  // 1px
+            FontParams(fontSize = 16f, fontRes = R.font.century_gothic, fontName = "century_gothic"),  // 1px
+            FontParams(fontSize = 16f, fontRes = R.font.century_regular, fontName = "century_regular"),  // 1px
+            FontParams(
+                fontSize = 16f,
+                fontRes = R.font.century_schoolbook_normal,
+                fontName = "century_schoolbook_normal"
+            ),  // 41px
+            FontParams(fontSize = 16f, fontRes = R.font.centuryschool, fontName = "centuryschool"),
+            FontParams(
+                fontSize = 16f,
+                fontRes = R.font.chalet_comprime_cologne_sixty,
+                fontName = "chalet_comprime_cologne_sixty"
+            ),
+            FontParams(
+                fontSize = 31f,
+                fontRes = R.font.chalet_london_nineteen_seventy,
+                fontName = "chalet_london_nineteen_seventy"
+            ),
+            FontParams(
+                fontSize = 16f,
+                fontRes = R.font.chalet_newyork_nineteen_seventy,
+                fontName = "chalet_newyork_nineteen_seventy"
+            ),
+            FontParams(fontSize = 16f, fontRes = R.font.chalk_dust, fontName = "chalk_dust"),
+            FontParams(fontSize = 16f, fontRes = R.font.chancery, fontName = "chancery"),
+            FontParams(fontSize = 16f, fontRes = R.font.chancery_regular, fontName = "chancery_regular"),
+            FontParams(fontSize = 16f, fontRes = R.font.cherry_cream_soda, fontName = "cherry_cream_soda"),
+            FontParams(fontSize = 16f, fontRes = R.font.chevin_medium, fontName = "chevin_medium"),
+            FontParams(fontSize = 16f, fontRes = R.font.chewy, fontName = "chewy"),
+            FontParams(fontSize = 16f, fontRes = R.font.classico_urw_t_ot, fontName = "classico_urw_t_ot"),
+            FontParams(fontSize = 16f, fontRes = R.font.coming_soon, fontName = "coming_soon"),
+            FontParams(
+                fontSize = 16f,
+                fontRes = R.font.commerce_black_condensed_ssi_bold_condensed,
+                fontName = "commerce_black_condensed_ssi_bold_condensed"
+            ),
+            FontParams(fontSize = 16f, fontRes = R.font.concetta, fontName = "concetta"),
+            FontParams(fontSize = 16f, fontRes = R.font.conformity_normal, fontName = "conformity_normal"),
+            FontParams(
+                fontSize = 16f,
+                fontRes = R.font.context_light_condensed_ssi_light_condensed,
+                fontName = "context_light_condensed_ssi_light_condensed"
+            ),
+            FontParams(
+                fontSize = 16f,
+                fontRes = R.font.context_reprise_condensed_ssi_condensed,
+                fontName = "context_reprise_condensed_ssi_condensed"
+            ),
+            FontParams(
+                fontSize = 16f,
+                fontRes = R.font.context_reprise_thin_ssi_thin,
+                fontName = "context_reprise_thin_ssi_thin"
+            ),
+            FontParams(
+                fontSize = 16f,
+                fontRes = R.font.context_semi_condensed_ssi_semi_condensed,
+                fontName = "context_semi_condensed_ssi_semi_condensed"
+            ),
+            FontParams(fontSize = 16f, fontRes = R.font.courier_std_medium, fontName = "courier_std_medium"),
+            FontParams(fontSize = 16f, fontRes = R.font.cousine_regular, fontName = "cousine_regular"),
+            FontParams(fontSize = 16f, fontRes = R.font.crafty_girls, fontName = "crafty_girls"),
+            FontParams(fontSize = 16f, fontRes = R.font.creepster_regular, fontName = "creepster_regular"),
+            FontParams(fontSize = 16f, fontRes = R.font.critical, fontName = "critical"),
+            FontParams(fontSize = 16f, fontRes = R.font.crocs, fontName = "crocs"),
+            FontParams(fontSize = 16f, fontRes = R.font.crushed, fontName = "crushed"),
+            FontParams(fontSize = 16f, fontRes = R.font.d3_cubism, fontName = "d3_cubism"),
+            FontParams(fontSize = 16f, fontRes = R.font.damned_architect, fontName = "damned_architect"),
+            FontParams(fontSize = 16f, fontRes = R.font.darling_nikki, fontName = "darling_nikki"),
+            FontParams(
+                fontSize = 16f,
+                fontRes = R.font.dateline_condensed_plain,
+                fontName = "dateline_condensed_plain"
+            ),
+            FontParams(fontSize = 16f, fontRes = R.font.daves_hand_regular, fontName = "daves_hand_regular"),
+            FontParams(fontSize = 16f, fontRes = R.font.david_sans_condensed, fontName = "david_sans_condensed"),
+            FontParams(fontSize = 16f, fontRes = R.font.dawn_castle, fontName = "dawn_castle"),
+            FontParams(fontSize = 16f, fontRes = R.font.daxline_pro_thin, fontName = "daxline_pro_thin"),
+            FontParams(fontSize = 16f, fontRes = R.font.defatted_milk_condensed, fontName = "defatted_milk_condensed"),
+            FontParams(fontSize = 16f, fontRes = R.font.dejavu_sans, fontName = "dejavu_sans"),
+            FontParams(fontSize = 16f, fontRes = R.font.dejavu_sans_condensed, fontName = "dejavu_sans_condensed"),
+            FontParams(fontSize = 16f, fontRes = R.font.dejavu_sans_mono, fontName = "dejavu_sans_mono"),
+            FontParams(fontSize = 16f, fontRes = R.font.dejavu_serif_condensed, fontName = "dejavu_serif_condensed"),
+            FontParams(fontSize = 16f, fontRes = R.font.dekorator_sto, fontName = "dekorator_sto"),
+            FontParams(fontSize = 16f, fontRes = R.font.delitsch_antiqua, fontName = "delitsch_antiqua"),
+            FontParams(fontSize = 16f, fontRes = R.font.desert_crypt, fontName = "desert_crypt"),
+            FontParams(fontSize = 16f, fontRes = R.font.desert_dog_hmk, fontName = "desert_dog_hmk"),
+            FontParams(fontSize = 16f, fontRes = R.font.diablo_heavy, fontName = "diablo_heavy"),
+            FontParams(fontSize = 16f, fontRes = R.font.dialog_regular, fontName = "dialog_regular"),
+            FontParams(fontSize = 16f, fontRes = R.font.diamond_gothic, fontName = "diamond_gothic"),
+            FontParams(fontSize = 16f, fontRes = R.font.diegolo, fontName = "diegolo"),
+            FontParams(
+                fontSize = 16f,
+                fontRes = R.font.digital_serial_regular_db,
+                fontName = "digital_serial_regular_db"
+            ),
+            FontParams(fontSize = 16f, fontRes = R.font.din, fontName = "din"),
+            FontParams(fontSize = 16f, fontRes = R.font.din_light, fontName = "din_light"),
+            FontParams(fontSize = 16f, fontRes = R.font.din_light_alternate, fontName = "din_light_alternate"),
+            FontParams(fontSize = 16f, fontRes = R.font.din_pro_light, fontName = "din_pro_light"),
+            FontParams(fontSize = 16f, fontRes = R.font.din_pro_regular, fontName = "din_pro_regular"),
+            FontParams(fontSize = 16f, fontRes = R.font.disney_park, fontName = "disney_park"),
+            FontParams(fontSize = 16f, fontRes = R.font.dn_manuscript, fontName = "dn_manuscript"),
+            FontParams(
+                fontSize = 16f,
+                fontRes = R.font.dolores_cyrillic_regular,
+                fontName = "dolores_cyrillic_regular"
+            ),
+            FontParams(fontSize = 16f, fontRes = R.font.don_casio, fontName = "don_casio"),
+            FontParams(
+                fontSize = 16f,
+                fontRes = R.font.donna_bodoni_aa_script_pdf,
+                fontName = "donna_bodoni_aa_script_pdf"
+            ),
+            FontParams(
+                fontSize = 16f,
+                fontRes = R.font.donna_bodoni_ce_script_pdf,
+                fontName = "donna_bodoni_ce_script_pdf"
+            ),
+            FontParams(fontSize = 16f, fontRes = R.font.doodle_kid, fontName = "doodle_kid"),
+            FontParams(fontSize = 16f, fontRes = R.font.dot_matrix_normal, fontName = "dot_matrix_normal"),
+            FontParams(fontSize = 16f, fontRes = R.font.dot_matrix_regular, fontName = "dot_matrix_regular"),
+            FontParams(fontSize = 16f, fontRes = R.font.draft_gothic_thin, fontName = "draft_gothic_thin"),
+            FontParams(fontSize = 16f, fontRes = R.font.draft_plate_condensed, fontName = "draft_plate_condensed"),
+            FontParams(fontSize = 16f, fontRes = R.font.draftsman_normal, fontName = "draftsman_normal"),
+            FontParams(fontSize = 16f, fontRes = R.font.dtl_prokyon_st_light, fontName = "dtl_prokyon_st_light"),
+            FontParams(fontSize = 16f, fontRes = R.font.duc_de_berry, fontName = "duc_de_berry"),
+            FontParams(fontSize = 16f, fontRes = R.font.dummy_boy, fontName = "dummy_boy"),
+            FontParams(
+                fontSize = 16f,
+                fontRes = R.font.dzeragir_decorative_italic,
+                fontName = "dzeragir_decorative_italic"
+            ),
+            FontParams(fontSize = 16f, fontRes = R.font.elementric, fontName = "elementric"),
+            FontParams(fontSize = 16f, fontRes = R.font.erin_go_bragh_condensed, fontName = "erin_go_bragh_condensed"),
+            FontParams(fontSize = 16f, fontRes = R.font.everlicious, fontName = "everlicious"),
+            FontParams(fontSize = 16f, fontRes = R.font.ft19_condensed_regular, fontName = "ft19_condensed_regular"),
+            FontParams(
+                fontSize = 16f,
+                fontRes = R.font.ft24_extracondensed_medium,
+                fontName = "ft24_extracondensed_medium"
+            ),
+            FontParams(fontSize = 16f, fontRes = R.font.fujiyama2, fontName = "fujiyama2"),
+            FontParams(fontSize = 16f, fontRes = R.font.gapstown, fontName = "gapstown"),
+            FontParams(
+                fontSize = 16f,
+                fontRes = R.font.garamond_light_condensed_ssi_light_condensed,
+                fontName = "garamond_light_condensed_ssi_light_condensed"
+            ),
+            FontParams(fontSize = 16f, fontRes = R.font.gracie, fontName = "gracie"),
+            FontParams(fontSize = 16f, fontRes = R.font.graphium_thin, fontName = "graphium_thin"),
+            FontParams(fontSize = 16f, fontRes = R.font.greenbeans_thin, fontName = "greenbeans_thin"),
+            FontParams(fontSize = 16f, fontRes = R.font.greymagus, fontName = "greymagus"),
+            FontParams(
+                fontSize = 16f,
+                fontRes = R.font.grutchgrotesk_condensed_light,
+                fontName = "grutchgrotesk_condensed_light"
+            ),
+            FontParams(fontSize = 16f, fontRes = R.font.harry, fontName = "harry"),
+            FontParams(fontSize = 16f, fontRes = R.font.harvey, fontName = "harvey"),
+            FontParams(fontSize = 16f, fontRes = R.font.high_sign, fontName = "high_sign"),
+            FontParams(fontSize = 16f, fontRes = R.font.hipchick, fontName = "hipchick"),
+            FontParams(
+                fontSize = 16f,
+                fontRes = R.font.ibmplex_sans_condensed_light,
+                fontName = "ibmplex_sans_condensed_light"
+            ),
+            FontParams(
+                fontSize = 16f,
+                fontRes = R.font.ibmplex_sans_condensed_regular,
+                fontName = "ibmplex_sans_condensed_regular"
+            ),
+            FontParams(
+                fontSize = 16f,
+                fontRes = R.font.ibmplex_sans_condensed_thin,
+                fontName = "ibmplex_sans_condensed_thin"
+            ),
+            FontParams(fontSize = 16f, fontRes = R.font.inconsolata_regular, fontName = "inconsolata_regular"),
+            FontParams(
+                fontSize = 16f,
+                fontRes = R.font.interstate_light_condensed,
+                fontName = "interstate_light_condensed"
+            ),
+            FontParams(fontSize = 16f, fontRes = R.font.jagged_dreams, fontName = "jagged_dreams"),
+            FontParams(fontSize = 16f, fontRes = R.font.just_another_hand, fontName = "just_another_hand"),
+            FontParams(fontSize = 16f, fontRes = R.font.kenzou, fontName = "kenzou"),
+            FontParams(
+                fontSize = 16f,
+                fontRes = R.font.kepler_std_light_condensed_display,
+                fontName = "kepler_std_light_condensed_display"
+            ),
+            FontParams(
+                fontSize = 16f,
+                fontRes = R.font.kepler_std_light_semicondensed_caption,
+                fontName = "kepler_std_light_semicondensed_caption"
+            ),
+            FontParams(
+                fontSize = 16f,
+                fontRes = R.font.kepler_std_light_semicondensed_display,
+                fontName = "kepler_std_light_semicondensed_display"
+            ),
+            FontParams(
+                fontSize = 16f,
+                fontRes = R.font.kepler_std_semicondensed,
+                fontName = "kepler_std_semicondensed"
+            ),
+            FontParams(fontSize = 16f, fontRes = R.font.kktdmag, fontName = "kktdmag"),
+            FontParams(fontSize = 16f, fontRes = R.font.lato_light, fontName = "lato_light"),
+            FontParams(fontSize = 16f, fontRes = R.font.lato_regular, fontName = "lato_regular"),
+            FontParams(fontSize = 16f, fontRes = R.font.lavi, fontName = "lavi"),
+            FontParams(fontSize = 16f, fontRes = R.font.lekton04_thin, fontName = "lekton04_thin"),
+            FontParams(fontSize = 16f, fontRes = R.font.liberation_mono_regular, fontName = "liberation_mono_regular"),
+            FontParams(fontSize = 16f, fontRes = R.font.maiden_orange, fontName = "maiden_orange"),
+            FontParams(fontSize = 16f, fontRes = R.font.mcg, fontName = "mcg"),
+            FontParams(fontSize = 16f, fontRes = R.font.montez_regular, fontName = "montez_regular"),
+            FontParams(fontSize = 16f, fontRes = R.font.nee, fontName = "nee"),
+            FontParams(fontSize = 16f, fontRes = R.font.nk57_monospace_ex_lt, fontName = "nk57_monospace_ex_lt"),
+            FontParams(fontSize = 16f, fontRes = R.font.nk57_monospace_ex_rg, fontName = "nk57_monospace_ex_rg"),
+            FontParams(fontSize = 16f, fontRes = R.font.nk57_monospace_sc_lt, fontName = "nk57_monospace_sc_lt"),
+            FontParams(fontSize = 16f, fontRes = R.font.nk57_monospace_se_rg, fontName = "nk57_monospace_se_rg"),
+            FontParams(fontSize = 16f, fontRes = R.font.open_sans_condlight, fontName = "open_sans_condlight"),
+            FontParams(fontSize = 16f, fontRes = R.font.open_sans_light, fontName = "open_sans_light"),
+            FontParams(fontSize = 16f, fontRes = R.font.open_sans_regular, fontName = "open_sans_regular"),
+            FontParams(fontSize = 16f, fontRes = R.font.orbitron_bold_webfont, fontName = "orbitron_bold_webfont"),
+            FontParams(fontSize = 16f, fontRes = R.font.orbitron_light, fontName = "orbitron_light"),
+            FontParams(fontSize = 16f, fontRes = R.font.orbitron_light_webfont, fontName = "orbitron_light_webfont"),
+            FontParams(fontSize = 16f, fontRes = R.font.orbitron_medium, fontName = "orbitron_medium"),
+            FontParams(fontSize = 16f, fontRes = R.font.permanent_marker, fontName = "permanent_marker"),
+            FontParams(fontSize = 16f, fontRes = R.font.pill_gothic_300mg_thin, fontName = "pill_gothic_300mg_thin"),
+            FontParams(fontSize = 16f, fontRes = R.font.quilline_script_thin, fontName = "quilline_script_thin"),
+            FontParams(fontSize = 16f, fontRes = R.font.rabiohead, fontName = "rabiohead"),
+            FontParams(fontSize = 16f, fontRes = R.font.rancho_regular, fontName = "rancho_regular"),
+            FontParams(fontSize = 16f, fontRes = R.font.redressed, fontName = "redressed"),
+            FontParams(fontSize = 16f, fontRes = R.font.ribeye_regular, fontName = "ribeye_regular"),
+            FontParams(fontSize = 16f, fontRes = R.font.roboto_condensed_light, fontName = "roboto_condensed_light"),
+            FontParams(
+                fontSize = 16f,
+                fontRes = R.font.roboto_condensed_regular,
+                fontName = "roboto_condensed_regular"
+            ),
+            FontParams(fontSize = 16f, fontRes = R.font.roboto_light, fontName = "roboto_light"),
+            FontParams(fontSize = 16f, fontRes = R.font.roboto_regular, fontName = "roboto_regular"),
+            FontParams(fontSize = 16f, fontRes = R.font.rochester_regular, fontName = "rochester_regular"),
+            FontParams(fontSize = 16f, fontRes = R.font.rocketscript, fontName = "rocketscript"),
+            FontParams(fontSize = 16f, fontRes = R.font.sans_thin_thin, fontName = "sans_thin_thin"),
+            FontParams(fontSize = 16f, fontRes = R.font.satisfy_regular, fontName = "satisfy_regular"),
+            FontParams(fontSize = 16f, fontRes = R.font.schoolbell, fontName = "schoolbell"),
+            FontParams(fontSize = 16f, fontRes = R.font.schwaben_alt_thin_thin, fontName = "schwaben_alt_thin_thin"),
+            FontParams(fontSize = 16f, fontRes = R.font.skinny, fontName = "skinny"),
+            FontParams(fontSize = 16f, fontRes = R.font.slackey, fontName = "slackey"),
+            FontParams(fontSize = 16f, fontRes = R.font.smokum_regular, fontName = "smokum_regular"),
+            FontParams(fontSize = 16f, fontRes = R.font.source_sans_pro_regular, fontName = "source_sans_pro_regular"),
+            FontParams(fontSize = 16f, fontRes = R.font.source_sans_pro_light, fontName = "source_sans_pro_light"),
+            FontParams(fontSize = 16f, fontRes = R.font.speciale_lite, fontName = "speciale_lite"),
+            FontParams(
+                fontSize = 16f,
+                fontRes = R.font.stint_ultra_condensed_regular,
+                fontName = "stint_ultra_condensed_regular"
+            ),
+            FontParams(fontSize = 16f, fontRes = R.font.sun, fontName = "sun"),
+            FontParams(fontSize = 16f, fontRes = R.font.sunshiney, fontName = "sunshiney"),
+            FontParams(fontSize = 16f, fontRes = R.font.syncopate_regular, fontName = "syncopate_regular"),
+            FontParams(fontSize = 16f, fontRes = R.font.thaiga_thin, fontName = "thaiga_thin"),
+            FontParams(fontSize = 16f, fontRes = R.font.tinos_regular, fontName = "tinos_regular"),
+            FontParams(fontSize = 16f, fontRes = R.font.ultra, fontName = "ultra"),
+            FontParams(fontSize = 16f, fontRes = R.font.unisolv3c, fontName = "unisolv3c"),
+            FontParams(fontSize = 16f, fontRes = R.font.unkempt_regular, fontName = "unkempt_regular"),
+            FontParams(fontSize = 16f, fontRes = R.font.urw_grotesk_t_ot_light, fontName = "urw_grotesk_t_ot_light"),
+            FontParams(
+                fontSize = 16f,
+                fontRes = R.font.urw_grotesk_t_ot_light_condensed,
+                fontName = "urw_grotesk_t_ot_light_condensed"
+            ),
+            FontParams(
+                fontSize = 16f,
+                fontRes = R.font.vag_rounded_light_ssi_thin,
+                fontName = "vag_rounded_light_ssi_thin"
+            ),
+            FontParams(fontSize = 16f, fontRes = R.font.vag_rounded_std_thin, fontName = "vag_rounded_std_thin"),
+            FontParams(fontSize = 16f, fontRes = R.font.vag_rounded_thin, fontName = "vag_rounded_thin"),
+            FontParams(fontSize = 16f, fontRes = R.font.walter_turncoat, fontName = "walter_turncoat"),
+            FontParams(fontSize = 16f, fontRes = R.font.whatever, fontName = "whatever"),
+            FontParams(fontSize = 16f, fontRes = R.font.wind, fontName = "wind"),
+            FontParams(
+                fontSize = 16f,
+                fontRes = R.font.yacarena_ultra_personal_use,
+                fontName = "yacarena_ultra_personal_use	"
+            )
         )
 
         private const val PERMISSION_WRITE_STORAGE = 4

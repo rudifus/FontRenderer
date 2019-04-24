@@ -2,4 +2,5 @@
     <string name="app_name">Font Renderer</string>
     <string name="menuRender">Render</string>
     <string name="storage_write_rationale">Fonts needed to be written to SDCARD</string>
+    <string name="menuGoTo">GoTo</string>
 </resources>

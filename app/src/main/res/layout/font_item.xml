@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+             xmlns:tools="http://schemas.android.com/tools"
+             android:layout_width="match_parent"
+             android:layout_height="36dp"
+             android:background="?attr/selectableItemBackground"
+        >
+
+    <TextView
+            android:layout_marginStart="16dp"
+            android:layout_gravity="center_vertical"
+            android:id="@+id/fontItemName"
+            android:fontFamily="@font/babyblue"
+            android:textStyle="bold"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="@style/TextAppearance.AppCompat.Small"
+            tools:text="@string/menuGoTo"
+            />
+
+    <View
+            android:background="@color/colorPrimaryDark"
+            android:layout_gravity="bottom"
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            />
+</FrameLayout>
