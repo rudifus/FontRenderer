@@ -436,14 +436,14 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
                 object : ViewTreeObserver.OnGlobalLayoutListener {
                     private val stringPreviewBuilder = StringBuilder(40)
                     private val stringHexBuilder = StringBuilder(40)
-                    private val stringFileBuilder = StringBuilder(2000)
+                    private val stringFileBuilders = Array(2) { StringBuilder(2000) }
                     private val widthsArray = IntArray(ASCII_LATIN_COUNT)
                     private var charIndex = 0
-                    private var targetLang = 0
+                    //                    private var targetLang = 0
                     private lateinit var pixels: Array<Array<Boolean>>
                     private var pixelWidthMax: Int = 0
                     private var pixelHeightMax: Int = 0
-                    private lateinit var fontFile: File
+                    private lateinit var fontFiles: Array<File>
 
                     override fun onGlobalLayout() {
 
@@ -471,31 +471,32 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
                                 "${Array(nameParts.size) { nameParts[it].capitalize() }.joinToString("")}${fontSize}px"
 //                            val arrayNameCamel = arrayName.replace("_", "")
                             appendFontFile(
-                                "${when (targetLang) {
-                                    LANG_JAVA -> "package com.rudolas.mia.lcdst7920.fonts;\n" +
-                                            "\npublic class $arrayNameCamel {" +
-                                            "\n    private  static final int[][] charsPixels = {"
-                                    else -> "package com.rudolas.mia.lcdst7920.fonts\n" +
-                                            "\nclass $arrayNameCamel {\n" +
-                                            "    companion object {\n" +
-                                            "        val font = FontItem( // FONT ${fontSize}px $fontName.ttf\n" +
-                                            "            \"${arrayName.toUpperCase()}\",\n" +
-                                            "            charBytes = arrayOf("
-                                }} "
+                                "package com.rudolas.mia.lcdst7920.fonts;\n" +
+                                        "\npublic class $arrayNameCamel {" +
+                                        "\n    private  static final int[][] charsPixels = {",
+                                "package com.rudolas.mia.lcdst7920.fonts\n" +
+                                        "\nclass $arrayNameCamel {\n" +
+                                        "    companion object {\n" +
+                                        "        val font = FontItem( // FONT ${fontSize}px $fontName.ttf\n" +
+                                        "            \"${arrayName.toUpperCase()}\",\n" +
+                                        "            charBytes = arrayOf("
                             )
-                            pixels = Array(fontSize * 3) { Array(fontSize * 3) { false } }
+                            pixels = Array(fontSize * 3)
+                            { Array(fontSize * 3) { false } }
                             val downloadDir = File(Environment.getExternalStorageDirectory(), "Download")
                             val fontsDir = File(downloadDir, "Fonts")
                             if (!fontsDir.exists() && !fontsDir.mkdir()) {
                                 logMsg("CANNOT ACCESS KeywordsDownload directory")
                                 return
                             }
-                            fontFile = File(
-                                fontsDir, "$arrayNameCamel.${getLangPrefix()}"
-                            )
-                            if (!fontFile.exists()) {
-                                logMsg("Font file to be created ${fontFile.absolutePath}")
+                            fontFiles = Array(2) {
+                                File(fontsDir, "$arrayNameCamel.${getLangPrefix(it)}").apply {
+                                    if (!exists()) {
+                                        logMsg("Font file to be created $absolutePath")
+                                    }
+                                }
                             }
+
                         }
 
                         val divider = fontParams.divider
@@ -556,31 +557,25 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
                         val hexAscii = stringHexBuilder.toString()
                         stringHexBuilder.clear()
 
-                        appendFontFile(
-                            if (isEmpty) {
-                                "    ${when (targetLang) {
-                                    LANG_JAVA -> "{}"
-                                    else -> "IntArray(0)"
-                                }}, // blank font char '$charText' $hexAscii"
-                            } else {
-                                "    ${when (targetLang) {
-                                    LANG_JAVA -> "{$rowBytes}"
-                                    else -> "intArrayOf($rowBytes)"
-                                }} ${if (isNotLastChar) "," else ""
-                                }$spacer // [$charIndex] ${bitmapWidth}x${bitmapHeight - topOffset / divider} '$charText' $hexAscii"
-                            }
-                        )
+                        if (isEmpty) {
+                            val appendix = ", // blank font char '$charText' $hexAscii"
+                            appendFontFile(
+                                "    {}$appendix",
+                                "    IntArray(0)$appendix"
+                            )
+                        } else {
+                            val appendix = " ${if (isNotLastChar) "," else ""
+                            }$spacer // [$charIndex] ${bitmapWidth}x${bitmapHeight - topOffset / divider} '$charText' $hexAscii"
+                            appendFontFile(
+                                "    {$rowBytes}$appendix",
+                                "    intArrayOf($rowBytes)$appendix"
+                            )
+                        }
                         //fontTexts.getChildAt(3).background = BitmapDrawable(resources, charBitmap)
                         charBitmap.recycle() // recycle manually if not assigned to imageView
 
                         when {
                             ++charIndex < latinCharacters.length -> assignLatinCharToRender()
-                            targetLang == LANG_KOTLIN -> {
-                                writeArrayEnd()
-                                targetLang++
-                                charIndex = 0
-                                assignLatinCharToRender()
-                            }
                             else -> {
                                 writeArrayEnd()
                                 charIndex = 0
@@ -588,8 +583,7 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
                                 logMsg("Render [$fontIndex] $fontName ${fontParams.fontSize.toInt()}px ${if (isContinuousRendering) "CONTINUOUS" else "SINGLE"} $charText")
                                 // continue to render next view
                                 if (isContinuousRendering) {
-                                    targetLang = LANG_KOTLIN
-                                    updateFontPreview(++fontIndex,"")
+                                    updateFontPreview(++fontIndex, "")
                                     assignLatinCharToRender()
                                 } else {
                                     fontTexts.viewTreeObserver.removeOnGlobalLayoutListener(this)
@@ -603,7 +597,7 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
                     /**
                      * provides target lang prefix, file extension
                      */
-                    private fun getLangPrefix(): String {
+                    private fun getLangPrefix(targetLang: Int): String {
                         return when (targetLang) {
                             LANG_JAVA -> "java"
                             LANG_PYTHON -> "py"
@@ -612,12 +606,17 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
                         }
                     }
 
+                    private fun appendFontFile(line: String) {
+                        appendFontFile(line, line)
+                    }
+
                     /**
                      * appends string line to output file string builder - to speed up file generation.
                      * It will be flushed to physical sdcard file at the end of rendering
                      */
-                    private fun appendFontFile(line: String) {
-                        stringFileBuilder.append(line).append("\n")
+                    private fun appendFontFile(lineJava: String, lineKotlin: String) {
+                        stringFileBuilders[LANG_JAVA].append(lineJava).append("\n")
+                        stringFileBuilders[LANG_KOTLIN].append(lineKotlin).append("\n")
 //                        logMsg("SK: $line")
                     }
 
@@ -648,11 +647,11 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
                      *  - Mass heat matrix text preview from all characters rendered into one map
                      */
                     private fun writeArrayEnd() {
-                        val isKotlin = targetLang == LANG_KOTLIN
-                        appendFontFile(if (isKotlin) ")," else "};")
+//                        val isKotlin = targetLang == LANG_KOTLIN
+                        appendFontFile("};", "),")
                         appendFontFile(
-                            if (isKotlin) "            widths = intArrayOf("
-                            else "    private static final int[] widths = {"
+                            "    private static final int[] widths = {",
+                            "            widths = intArrayOf("
                         )
 
                         for (i in widthsArray.indices) {
@@ -678,18 +677,14 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
                         }
                         val fontParams = FONT_PARAMS[fontIndex]
                         appendFontFile(
-                            if (isKotlin) "        )\n    )\n    }\n}"
-                            else "};\n\n    public static final FontItem FONT = new FontItem(\n" +
+                            "};\n\n    public static final FontItem FONT = new FontItem(\n" +
                                     "            \"${fontParams.fontName.toUpperCase()}_${fontParams.fontSize.toInt()}PX\",\n" +
                                     "            charsPixels,\n" +
                                     "            widths\n" +
-                                    "    );\n}"
-
+                                    "    );\n}\n",
+                            "        )\n    )\n    }\n}"
                         )
 
-                        if (!isKotlin) {
-                            appendFontFile("")
-                        }
                         appendFontFile(
                             "// Max Character Bitmap $pixelWidthMax x $pixelHeightMax ${
                             if (fontParams.divider > 1) "Divider ${fontParams.divider}" else ""
@@ -704,10 +699,12 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
                             stringPreviewBuilder.clear()
                         }
                         // write file content builder to output file
-                        fontFile.sink(false).buffer().use {
-                            it.write(stringFileBuilder.toString().encodeUtf8())
+                        for (i in fontFiles.indices) {
+                            fontFiles[i].sink(false).buffer().use {
+                                it.write(stringFileBuilders[i].toString().encodeUtf8())
+                            }
+                            stringFileBuilders[i].clear()
                         }
-                        stringFileBuilder.clear()
                     }
                 }
             })
@@ -1398,7 +1395,7 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
             FontParams(
                 fontSize = 16f,
                 fontRes = R.font.yacarena_ultra_personal_use,
-                fontName = "yacarena_ultra_personal_use	"
+                fontName = "yacarena_ultra_personal_use"
             )
         )
 
