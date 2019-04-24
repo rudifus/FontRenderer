@@ -41,7 +41,7 @@ To enable logcat log just uncomment the following `logMsg` code line in `appendF
  }
 ```
 
-* Hint: To avoid compilation troubles with generated font bytes arrays, e.g. java code too large, keep the render font size as low as possible to match native font size or to render non excessive bitmaps.
+* Hint: To avoid compilation troubles with generated font bytes arrays, e.g. java code too large, keep the render font size as low as possible to match native font size and to render non excessive bitmaps.
 ### Sample output
 
 There are generated pixel bytes for each character from supported ASCII range per row. Bytes width and height corresponds to rendered native true type font size.
@@ -83,6 +83,7 @@ class TinyUnicode16px {
     }
 }
 // Max Bitmap 14 x 13 Offsets [0, 0] 
+// Mass Matrix - merged text preview from all characters rendered into one map
 // Mass Matrix ############## 0
 // Mass Matrix ############## 1
 // Mass Matrix ############## 2
