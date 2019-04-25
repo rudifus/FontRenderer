@@ -358,7 +358,7 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
     /**
      * global layout listener used to await char layout formatting according to requested font type and font size.
      * It loops through either all font sizes from 5px until 64px or supported ascii font chars
-     * Also whole font rendering here is repeated for all target languages supported.
+     * In each font char rendering loop pixels bytes for all supported target languages are generated.
      *
      * @param latinCharacters string as an array of latin ascii chars to render
      * @param toCheckBitmaps true to preview 5px..64px font sizes into rendered char bitmaps, otherwise false to avoid bitmaps rendering
@@ -725,10 +725,6 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
         forceCreate: Boolean = false
     ) {
         val fontParams = FONT_PARAMS[index]
-//        if (fontParams.fontSize.toInt() == 1) {
-//            updateFontPreview(++fontIndex, latinCharacters)
-//            return
-//        }
 //        logMsg("SK: [$index] ${fontParams.fontName} ${resources.getResourceName(fontParams.fontRes)}")
         if (forceCreate) {
             fontTitleTextView = inflateTextView()
