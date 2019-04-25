@@ -51,7 +51,7 @@ import kotlin.math.min
  * ¡¢£¤¥¦§¨©ª«¬­®¯°±²³´µ¶·¸¹º»¼½¾¿ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþÿĀāĂăĄą
  * ĆćĈĉĊċČčĎďĐđĒēĔĕĖėĘęĚěĜĝĞğĠġĢģĤĥĦħĨĩĪīĬĭĮįİıĲĳĴĵĶķĸĹĺĻļĽľĿŀŁłŃńŅņŇňŉŊŋŌōŎŏŐőŒœŔŕŖŗŘřŚśŜŝŞşŠšŢţŤťŦŧŨũŪūŬŭŮůŰűŲųŴŵŶŷŸŹźŻżŽž"
  *
- * Result code arrays are stored into SDcard directory /sdcard/Download/Fonts/    e.g. filename FONT_TINY_UNICODE_16PX.txt
+ * Result code arrays are stored into SDcard directory /sdcard/Download/Fonts/    e.g. filename TinyUnicode16px.kt
  *
  * for each character is generated pixel bytes row by row upon native true type font text size,
  *

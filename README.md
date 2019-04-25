@@ -29,7 +29,7 @@ C code to be supported on request.
 * Default native font size for rendering is 16px and is recommended to be changed to best match a native font size.
 
 * Result code arrays are stored in SDcard directory 
-  *`/sdcard/Download/Fonts/`*    e.g. filename `FONT_TINY_UNICODE_16PX.txt`
+  *`/sdcard/Download/Fonts/`*    e.g. filename `TinyUnicode16px.kt`
   
 Also log output in android logcat is available. Log lines prefix to filter is `SK:`, just legacy to original language characters set, SK for Slovak :)
 To enable logcat log just uncomment the following `logMsg` code line in `appendFontFile` method.
