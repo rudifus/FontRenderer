@@ -434,7 +434,6 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
                     private val stringFileBuilders = Array(2) { StringBuilder(2000) }
                     private val widthsArray = IntArray(ASCII_LATIN_COUNT)
                     private var charIndex = 0
-                    //                    private var targetLang = 0
                     private lateinit var pixels: Array<Array<Boolean>>
                     private var pixelWidthMax: Int = 0
                     private var pixelHeightMax: Int = 0
@@ -511,7 +510,7 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
                                 val isPixelOn = charBitmap.getPixel(x, y) != 0
                                 val pixelX = x / divider
                                 val pixelY = y / divider
-                                if (/*hasNoTopOffset &&*/ isPixelOn && !pixels[pixelY][pixelX]) {
+                                if (/*hasNoTopOffset &&*/ isPixelOn && pixelX < pixels.size && pixelY < pixels.size && !pixels[pixelY][pixelX]) {
                                     pixels[pixelY][pixelX] = true
                                 }
                                 val pixel = if (isPixelOn) 1 else 0
@@ -687,8 +686,8 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
                             } Offsets [Top=${fontParams.topOffset}, Bottom=${fontParams.bottomOffset}]" +
                                     "\n// Mass Matrix - merged text preview from all characters rendered into one map"
                         )
-                        for (y in 0 until pixelHeightMax) {
-                            for (x in 0 until pixelWidthMax) {
+                        for (y in 0 until min(pixelHeightMax, pixels.size)) {
+                            for (x in 0 until min(pixelWidthMax, pixels.size)) {
                                 stringPreviewBuilder.append(if (pixels[y][x]) '#' else '.')  // preview '#' as pixel on and '.' as an empty pixel
                             }
                             appendFontFile("// Mass Matrix $stringPreviewBuilder $y")
@@ -726,6 +725,10 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
         forceCreate: Boolean = false
     ) {
         val fontParams = FONT_PARAMS[index]
+//        if (fontParams.fontSize.toInt() == 1) {
+//            updateFontPreview(++fontIndex, latinCharacters)
+//            return
+//        }
 //        logMsg("SK: [$index] ${fontParams.fontName} ${resources.getResourceName(fontParams.fontRes)}")
         if (forceCreate) {
             fontTitleTextView = inflateTextView()
@@ -897,7 +900,7 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
                 fontSize = 41f, fontRes = R.font.bitx_map_font_tfb, fontName = "bitx_map_font_tfb",
                 divider = 1, topOffset = 10, bottomOffset = 0
             ),
-            FontParams(fontSize = 9f, fontRes = R.font.blau7pt, fontName = "blau7pt"),
+            FontParams(fontSize = 9f, fontRes = R.font.blau7pt, fontName = "blau7pt"), // wrong font
             FontParams(fontSize = 20f, fontRes = R.font.bm_mini, fontName = "bm_mini"),
             FontParams(fontSize = 30f, fontRes = R.font.bmhaa, fontName = "bmhaa"),
             FontParams(
@@ -918,7 +921,7 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
             FontParams(fontSize = 56f, fontRes = R.font.david_sans_condensed, fontName = "david_sans_condensed"),
             FontParams(fontSize = 40f, fontRes = R.font.display, fontName = "display"),  //10px
 // FontParams(fontSize = 16f, fontRes = R.font.emoticomic, fontName = "emoticomic"),
-            FontParams(fontSize = 1f, fontRes = R.font.emulator, fontName = "emulator"),
+            FontParams(fontSize = 16f, fontRes = R.font.emulator, fontName = "emulator"), // 1px
             FontParams(fontSize = 8f, fontRes = R.font.endlesstype, fontName = "endlesstype"),
             FontParams(fontSize = 16f, fontRes = R.font.enter_command, fontName = "enter_command"),
             FontParams(fontSize = 41f, fontRes = R.font.everyday, fontName = "everyday"),
@@ -946,7 +949,7 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
             FontParams(fontSize = 40f, fontRes = R.font.grand9k_pixel, fontName = "grand9k_pixel"),
             FontParams(fontSize = 8f, fontRes = R.font.graph_35_pix, fontName = "graph_35_pix"),
             FontParams(fontSize = 41f, fontRes = R.font.graphicpixel, fontName = "graphicpixel"),
-            FontParams(fontSize = 1f, fontRes = R.font.grudb_lit, fontName = "grudb_lit"),
+            FontParams(fontSize = 16f, fontRes = R.font.grudb_lit, fontName = "grudb_lit"),  // 1px
             FontParams(fontSize = 13f, fontRes = R.font.hello_world, fontName = "hello_world"),  // 52px
             FontParams(
                 fontSize = 16f, fontRes = R.font.heytext, fontName = "heytext",
@@ -955,7 +958,7 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
             FontParams(fontSize = 20f, fontRes = R.font.homespun, fontName = "homespun"), // 60px
             FontParams(fontSize = 16f, fontRes = R.font.igiari, fontName = "igiari"),
             FontParams(fontSize = 52f, fontRes = R.font.itty, fontName = "itty"),
-            FontParams(fontSize = 1f, fontRes = R.font.jd_lcd_rounded, fontName = "jd_lcd_rounded"),
+            FontParams(fontSize = 16f, fontRes = R.font.jd_lcd_rounded, fontName = "jd_lcd_rounded"),  // 1px
             FontParams(
                 fontSize = 20f, fontRes = R.font.led_calculator, fontName = "led_calculator",
                 divider = 1, topOffset = 6, bottomOffset = 2
@@ -965,8 +968,8 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
             FontParams(fontSize = 52f, fontRes = R.font.lqdkdz_nospace, fontName = "lqdkdz_nospace"),
             FontParams(fontSize = 36f, fontRes = R.font.manual_display, fontName = "manual_display"),
             FontParams(fontSize = 40f, fontRes = R.font.mega_man_zx, fontName = "mega_man_zx"),
-            FontParams(fontSize = 1f, fontRes = R.font.mini_kylie, fontName = "mini_kylie"),
-            FontParams(fontSize = 1f, fontRes = R.font.mini_power, fontName = "mini_power"),
+            FontParams(fontSize = 16f, fontRes = R.font.mini_kylie, fontName = "mini_kylie"),  // 1px
+            FontParams(fontSize = 16f, fontRes = R.font.mini_power, fontName = "mini_power"),  // 1px
             FontParams(fontSize = 8f, fontRes = R.font.mini_set2, fontName = "mini_set2"),
             FontParams(fontSize = 16f, fontRes = R.font.mix_serif_condense, fontName = "mix_serif_condense"),
             FontParams(fontSize = 32f, fontRes = R.font.mmbnthin, fontName = "mmbnthin"),
@@ -977,7 +980,7 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
                 divider = 1, topOffset = 3, bottomOffset = 1
             ),
             FontParams(fontSize = 8f, fontRes = R.font.monotype_gerhilt, fontName = "monotype_gerhilt"),
-            FontParams(fontSize = 1f, fontRes = R.font.moonracr, fontName = "moonracr"),
+            FontParams(fontSize = 16f, fontRes = R.font.moonracr, fontName = "moonracr"),  // 1px
             FontParams(fontSize = 16f, fontRes = R.font.mosarg, fontName = "mosarg"),  // 1px
             FontParams(
                 fontSize = 10f, fontRes = R.font.mousetrap2, fontName = "mousetrap2",
@@ -998,7 +1001,7 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
                 fontSize = 20f, fontRes = R.font.pix_l, fontName = "pix_l",
                 divider = 2, topOffset = 0, bottomOffset = 0
             ), //1px
-            FontParams(fontSize = 1f, fontRes = R.font.pixel_block_bb, fontName = "pixel_block_bb"),
+            FontParams(fontSize = 16f, fontRes = R.font.pixel_block_bb, fontName = "pixel_block_bb"),  // 1px
             FontParams(fontSize = 16f, fontRes = R.font.pixel_operator, fontName = "pixel_operator"),  //50px
             FontParams(fontSize = 8f, fontRes = R.font.pixel_operator8, fontName = "pixel_operator8"),  //50px
             FontParams(fontSize = 16f, fontRes = R.font.pixel_operator_mono, fontName = "pixel_operator_mono"),  //50px
@@ -1039,36 +1042,36 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
                 fontRes = R.font.rse_handwriting_pixel,
                 fontName = "rse_handwriting_pixel"
             ), //1px
-            FontParams(fontSize = 1f, fontRes = R.font.rtt_redstar_8, fontName = "rtt_redstar_8"),
+            FontParams(fontSize = 16f, fontRes = R.font.rtt_redstar_8, fontName = "rtt_redstar_8"),  // 1px
             FontParams(fontSize = 16f, fontRes = R.font.savior1, fontName = "savior1"),  //1px
             FontParams(
                 fontSize = 16f, fontRes = R.font.scifibit, fontName = "scifibit",
                 divider = 2, topOffset = 0, bottomOffset = 0
             ),  //1px
             FontParams(fontSize = 16f, fontRes = R.font.sevastopol_interface, fontName = "sevastopol_interface"),  //1px
-            FontParams(fontSize = 1f, fontRes = R.font.sg04, fontName = "sg04"),
+            FontParams(fontSize = 16f, fontRes = R.font.sg04, fontName = "sg04"),  // 1px
             FontParams(fontSize = 16f, fontRes = R.font.sgk075, fontName = "sgk075"),  //1px
             FontParams(fontSize = 8f, fontRes = R.font.silly_pixel, fontName = "silly_pixel"),  //1px
-            FontParams(fontSize = 1f, fontRes = R.font.smt_devil_survivor, fontName = "smt_devil_survivor"),
-            FontParams(fontSize = 1f, fontRes = R.font.somybmp01_7, fontName = "somybmp01_7"),
+            FontParams(fontSize = 16f, fontRes = R.font.smt_devil_survivor, fontName = "smt_devil_survivor"),  // 1px
+            FontParams(fontSize = 16f, fontRes = R.font.somybmp01_7, fontName = "somybmp01_7"),  // 1px
 // FontParams(fontSize = 16f, fontRes = R.font.sprite_comic, fontName = "sprite_comic"),
-            FontParams(fontSize = 1f, fontRes = R.font.st01r, fontName = "st01r"),
-            FontParams(fontSize = 1f, fontRes = R.font.supernat1001, fontName = "supernat1001"),
-            FontParams(fontSize = 1f, fontRes = R.font.tama_mini02, fontName = "tama_mini02"),
+            FontParams(fontSize = 16f, fontRes = R.font.st01r, fontName = "st01r"),  // 1px
+            FontParams(fontSize = 16f, fontRes = R.font.supernat1001, fontName = "supernat1001"),  // 1px
+            FontParams(fontSize = 16f, fontRes = R.font.tama_mini02, fontName = "tama_mini02"),  // 1px
             FontParams(
                 fontSize = 25f, fontRes = R.font.techkr, fontName = "techkr",
                 divider = 1, topOffset = 12, bottomOffset = 0
             ),
-            FontParams(fontSize = 1f, fontRes = R.font.teeny_pix, fontName = "teeny_pix"),
+            FontParams(fontSize = 16f, fontRes = R.font.teeny_pix, fontName = "teeny_pix"),  // 1px
             FontParams(fontSize = 20f, fontRes = R.font.thin_pixel_7, fontName = "thin_pixel_7"),  //1px
-            FontParams(fontSize = 1f, fontRes = R.font.threebyfive_memesbruh03, fontName = "threebyfive_memesbruh03"),
+            FontParams(fontSize = 16f, fontRes = R.font.threebyfive_memesbruh03, fontName = "threebyfive_memesbruh03"),  // 1px
             FontParams(fontSize = 30f, fontRes = R.font.tiny, fontName = "tiny"),  //1px
             FontParams(fontSize = 16f, fontRes = R.font.tiny_unicode, fontName = "tiny_unicode"),
             FontParams(
-                fontSize = 1f,
+                fontSize = 16f,
                 fontRes = R.font.tloz_minish_cap_a_link_to_the_past_four_sword,
                 fontName = "tloz_minish_cap_a_link_to_the_past_four_sword"
-            ),
+            ),  // 1px
             FontParams(
                 fontSize = 16f,
                 fontRes = R.font.tloz_phantom_hourglass,
