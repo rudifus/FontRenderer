@@ -24,7 +24,7 @@ This Android Studio project contains 127 already included true type fonts added 
 
 ## Output kotlin/java array code
 * The app output is merged into array of char pixels bytes: one for kotlin and one for java,
-C code to be supported on request. 
+ C or python code to be supported later. 
 
 * Default native font size for rendering is 16px and is recommended to be changed to best match a native font size.
 
@@ -34,7 +34,7 @@ C code to be supported on request.
 Also log output in android logcat is available. Log lines prefix to filter is `SK:`, just legacy to original language characters set, SK for Slovak :)
 To enable logcat log just uncomment the following `logMsg` code line in `appendFontFile` method.
 
- ```
+ ```kotlin
  private fun appendFontFile(line: String) {
            stringFileBuilder.append(line).append("\n")
  //           logMsg("SK: $line")
@@ -47,7 +47,8 @@ To enable logcat log just uncomment the following `logMsg` code line in `appendF
 There are generated pixel bytes for each character from supported ASCII range per row. Bytes width and height corresponds to rendered native true type font size.
    e.g 6x12 pixels matrix corresponds to the rendered char converted into 12 hexa bytes as height with 6 pixels as width in row, e.g.
 
-```  000000 [0]
+```kotlin
+  000000 [0]
   000000 [1]
   000000 [2]
   011100 [3]
@@ -63,7 +64,7 @@ There are generated pixel bytes for each character from supported ASCII range pe
 
 output kotlin code sample:
 
-```
+```kotlin
 class TinyUnicode16px {
     companion object {
         val font = FontItem( // FONT 16px tiny_unicode.ttf
