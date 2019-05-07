@@ -1,9 +1,7 @@
 package com.rudolas.mia.fontrenderer
 
-import android.app.Activity
 import android.graphics.Bitmap
 import android.os.Environment.getExternalStorageDirectory
-import android.widget.ImageView
 import okio.ByteString.Companion.encodeUtf8
 import okio.buffer
 import okio.sink
@@ -16,21 +14,20 @@ class FontRender {
 
     private val stringPreviewBuilder = StringBuilder(40)
     private val stringHexBuilder = StringBuilder(40)
-    private val stringFileBuilders = Array(2) { StringBuilder(2000) }
-    private var pixels: Array<Array<Boolean>> = emptyArray()
+    private val stringFileBuilders = Array(2) { StringBuilder(32000) }
     private var pixelWidthMax: Int = 0
     private var pixelHeightMax: Int = 0
     private var fontFiles: Array<File> = emptyArray()
-    private var fontBitmapFile: File = File("")
-    private val fontPreview = FontPreview()
+    private var fontBitmapFiles: Array<File> = emptyArray()
+    private val fontPreviewArray = arrayOfNulls<FontPreview>(getFontsCount())
     private val latinCharacters = getExtendedLatinCharactersString()
 
     fun processCharacterBitmap(
-        previewImage: ImageView,
         fontIndex: Int,
         charIndex: Int,
         charBitmap: Bitmap,
-        toGenerateCharPixelsPreview: Boolean
+//        toGenerateCharPixelsPreview: Boolean,
+        updatePreviewBitmap: (Bitmap) -> Unit
     ) {
         val fontParams = getFontParams(fontIndex)
         val fontName = fontParams.fontName
@@ -42,24 +39,10 @@ class FontRender {
         if (charIndex == 0) {
             val fontSize = fontParams.fontSize.toInt()
             val nameParts = fontName.split('_')
-            val arrayName = "${fontName.toUpperCase()}_${fontSize}px"
             val arrayNameCamel =
                 "${Array(nameParts.size) { nameParts[it].capitalize() }.joinToString("")}${fontSize}px"
 
             logMsg("SK: Render File [$fontIndex] $arrayNameCamel $fontSize}px [$charIndex] '$charText'")
-
-            appendFontFile(
-                "package com.rudolas.mia.lcdst7920.fonts;\n" +
-                        "\npublic class $arrayNameCamel {" +
-                        "\n    private  static final int[][] charsPixels = {",
-                "package com.rudolas.mia.lcdst7920.fonts\n" +
-                        "\nclass $arrayNameCamel {\n" +
-                        "    companion object {\n" +
-                        "        val font = FontItem( // FONT ${fontSize}px $fontName.ttf\n" +
-                        "            \"${arrayName.toUpperCase()}\",\n" +
-                        "            charBytes = arrayOf("
-            )
-            pixels = Array(fontSize * 3) { Array(fontSize * 3) { false } }
 
             val downloadDir = File(getExternalStorageDirectory(), "Download")
             val fontsDir = File(downloadDir, "Fonts")
@@ -79,182 +62,204 @@ class FontRender {
                 logMsg("CANNOT ACCESS FontBitmaps directory")
                 //                                    return
             }
-            fontBitmapFile = File(fontBitmapsDir, "$arrayNameCamel.webp")
-            checkPreviewFontBitmap(previewImage)
+            fontBitmapFiles = Array(2) {
+                File(fontBitmapsDir, "${arrayNameCamel}_$it.webp")
+            }
+            fontPreviewArray[fontIndex] = FontPreview(1, fontSize * 3, arrayNameCamel)
         }
 
         val divider = fontParams.divider
 
-        // ignore char 64 line feed
-        val bitmapWidth = if (charBitmap.width >= pixels.size) 1 else charBitmap.width / divider
+        val fontPreview = fontPreviewArray[fontIndex]!!
+        val pixelsSize = fontPreview.pixels.size
+        val bitmapWidth = if (charBitmap.width >= pixelsSize) 1 else charBitmap.width / divider
         val bitmapHeight =
-            if (charBitmap.height - fontParams.bottomOffset >= pixels.size) 1 else (charBitmap.height - fontParams.bottomOffset) / divider
+            if (charBitmap.height - fontParams.bottomOffset >= pixelsSize) 1 else (charBitmap.height - fontParams.bottomOffset) / divider
+
         fontPreview.widthsArray[charIndex] = bitmapWidth
 
-        //                        val hasNoTopOffset = fontParams.topOffset == 0
-        if (/*hasNoTopOffset &&*/ charIndex != 64 && bitmapHeight * divider < pixels.size && bitmapWidth * divider < pixels.size) {
+        if (bitmapHeight * divider < pixelsSize && bitmapWidth * divider < pixelsSize) {
             pixelHeightMax = max(bitmapHeight, pixelHeightMax)
             pixelWidthMax = max(bitmapWidth, pixelWidthMax)
             //                            logMsg("SK: Max bitmap $pixelWidthMax x $pixelHeightMax '${fontCharTextView.text}'")
         }
         val topOffset = fontParams.topOffset
-        fontPreview.previewMapBuilder[charIndex].clear()
+        val fontMapBuilder = fontPreview.previewMapBuilder[charIndex]
+        fontMapBuilder.clear()
         for (y in topOffset until bitmapHeight * divider step divider) {
+            val pixelY = y / divider
+            val pixelsHeats = fontPreview.pixels[pixelY]
             var byte = 0
             for (x in 0 until bitmapWidth * divider step divider) {
                 val isPixelOn = charBitmap.getPixel(x, y) != 0
                 if (isPixelOn) {
                     val pixelX = x / divider
-                    val pixelY = y / divider
-                    if (pixelX < pixels.size && pixelY < pixels.size && !pixels[pixelY][pixelX]) {
-                        pixels[pixelY][pixelX] = true
+                    if (pixelX < pixelsSize && pixelY < pixelsSize && !pixelsHeats[pixelX]) {
+                        pixelsHeats[pixelX] = true
                     }
                     byte += 1 shl (bitmapWidth - x / divider - 1)
                 }
-                if (toGenerateCharPixelsPreview) {
-                    stringPreviewBuilder.append(if (isPixelOn) 1 else 0)
-                }
+//                if (toGenerateCharPixelsPreview) {
+//                    stringPreviewBuilder.append(if (isPixelOn) 1 else 0)
+//                }
             }
-            if (toGenerateCharPixelsPreview) {
-                appendFontFile("// $stringPreviewBuilder [$y]") // binary char pixels preview
-                stringPreviewBuilder.clear()
-            }
-            appendHexString(stringHexBuilder.append(if (y == topOffset) "" else ", ").apply {
-                val indexY = (y - topOffset) / divider
-                if (indexY > 0 && indexY % HEX_VALUES_LINE_LIMIT == 0) {
-                    stringHexBuilder.append("\n ")
-                }
-            }, byte)
-            fontPreview.previewMapBuilder[charIndex].add(byte)
-        }
 
-        val rowBytes = stringHexBuilder.toString()
-        stringHexBuilder.clear()
-        if (bitmapHeight < HEX_VALUES_LINE_LIMIT) {
-            for (j in 0..65 - rowBytes.length) {
-                stringHexBuilder.append(' ')
-            }
-        }
-        val isNotLastChar = charIndex < FontPreview.ASCII_LATIN_COUNT - 1
-        if (!isNotLastChar) {
-            stringHexBuilder.append(' ')
-        }
-        val spacer = stringHexBuilder.toString()
-
-        stringHexBuilder.clear()
-
-        appendHexString(stringHexBuilder, charText.toInt())
-        val hexAscii = stringHexBuilder.toString()
-        stringHexBuilder.clear()
-
-        if (bitmapHeight <= 1) {
-            val appendix = ", // blank font char '$charText' $hexAscii"
-            appendFontFile(
-                "            {}$appendix",
-                "                IntArray(0)$appendix"
-            )
-        } else {
-            val appendix = "${if (isNotLastChar) "," else ""
-            }$spacer // [$charIndex] ${bitmapWidth}x${bitmapHeight - topOffset / divider} '$charText' $hexAscii"
-            appendFontFile(
-                "            {$rowBytes}$appendix",
-                "                intArrayOf($rowBytes)$appendix"
-            )
+//            addHexString(y, byte, false)
+            fontMapBuilder.add(byte)
         }
         charBitmap.recycle() // recycle manually if not assigned to imageView
+
         if (charIndex + 1 >= FontPreview.ASCII_LATIN_COUNT) {
-            val isContinuousRendering = fontIndex < getFontsCount() - 1
-            logMsg("SK: Render [$fontIndex] $fontName ${fontParams.fontSize.toInt()}px ${if (isContinuousRendering) "CONTINUOUS" else "SINGLE"} ${latinCharacters[charIndex]}")
-            writeArrayEnd(fontParams)
-            if (fontPreview.overlayBitmap != null) {
-                fontPreview.renderGraphicsMessageCompacted3()
-                (previewImage.context as Activity).runOnUiThread {
-                    previewImage.invalidate()
-                }
-                // write file content builder to output file
-                fontBitmapFile.sink(false).buffer().use {
-                    ByteArrayOutputStream(8000).use { outStream ->
-                        fontPreview.overlayBitmap?.compress(
-                            Bitmap.CompressFormat.WEBP,
-                            100,
-                            outStream
-                        )
-                        it.write(outStream.toByteArray())
+            logMsg("SK: Render [$fontIndex] $fontName ${fontParams.fontSize.toInt()}px ${latinCharacters[charIndex]}")
+
+            // init kotlin /java files
+            val arrayNameCamel = fontPreview.arrayNameCamel
+            val fontSize = fontParams.fontSize
+            appendFontFile(
+                "package fonts;\n" +
+                        "\npublic class $arrayNameCamel {" +
+                        "\n    private  static final int[][] charsPixels = {",
+                "package fonts\n" +  //com.rudolas.mia.lcdst7920.fonts
+                        "\nclass $arrayNameCamel {\n" +
+                        "    companion object {\n" +
+                        "        val font = FontItem( // FONT ${fontSize}px $fontName.ttf\n" +
+                        "            \"${"${fontName.toUpperCase()}_${fontSize}PX"}\",\n" +
+                        "            charBytes = arrayOf("
+            )
+            // appends font chars map rendering as FontItem FONT object
+            val fontCharBytes = fontMapBuilder.toIntArray()
+            for ((indexY, byte) in fontCharBytes.withIndex()) {
+
+//            if (toGenerateCharPixelsPreview) {
+//                appendFontFile("// $stringPreviewBuilder [$y]") // binary char pixels preview
+//                stringPreviewBuilder.clear()
+//            }
+                appendHexString(stringHexBuilder.append(if (/*y == topOffset*/indexY == fontCharBytes.lastIndex) "" else ", ").apply {
+                    if (indexY > 0 && indexY % HEX_VALUES_LINE_LIMIT == 0) {
+                        stringHexBuilder.append("\n ")
+                    }
+                }, byte)
+
+                val rowBytes = stringHexBuilder.toString()
+                stringHexBuilder.clear()
+                if (bitmapHeight < HEX_VALUES_LINE_LIMIT) {
+                    for (j in 0..65 - rowBytes.length) {
+                        stringHexBuilder.append(' ')
                     }
                 }
+                val isNotLastChar = charIndex < FontPreview.ASCII_LATIN_COUNT - 1
+                if (!isNotLastChar) {
+                    stringHexBuilder.append(' ')
+                }
+                val spacer = stringHexBuilder.toString()
+
+                stringHexBuilder.clear()
+
+                appendHexString(stringHexBuilder, charText.toInt())
+                val hexAscii = stringHexBuilder.toString()
+                stringHexBuilder.clear()
+
+                if (bitmapHeight <= 1) {
+                    val appendix = ", // blank font char '$charText' $hexAscii"
+                    appendFontFile(
+                        "            {}$appendix",
+                        "                IntArray(0)$appendix"
+                    )
+                } else {
+                    val appendix = "${if (isNotLastChar) "," else ""
+                    }$spacer // [$charIndex] ${bitmapWidth}x${bitmapHeight - topOffset / divider} '$charText' $hexAscii"
+                    appendFontFile(
+                        "            {$rowBytes}$appendix",
+                        "                intArrayOf($rowBytes)$appendix"
+                    )
+                }
+            }
+
+            appendFontFile(
+                "    };\n    private static final int[] widths = {",
+                "            ),\n            widths = intArrayOf("
+            )
+
+            val widthsArray = fontPreview.widthsArray
+            for (i in widthsArray.indices) {
+                stringPreviewBuilder.append(widthsArray[i])
+                    .append(if (i < FontPreview.ASCII_LATIN_COUNT - 1) "," else "")
+                if (i % 10 == 9) {
+                    for (j in 0..29 - stringPreviewBuilder.length) {
+                        stringPreviewBuilder.append(' ')
+                    }
+                    val firstChar = latinCharacters[i - 9]
+                    appendHexString(stringHexBuilder, firstChar.toInt())
+                    val appendix =
+                        "$stringPreviewBuilder // '$firstChar'..'${latinCharacters[i]}' $stringHexBuilder"
+                    appendFontFile("            $appendix", "                $appendix")
+                    stringPreviewBuilder.clear()
+                    stringHexBuilder.clear()
+                }
+            }
+            if (stringPreviewBuilder.isNotEmpty()) {
+                for (j in 0..29 - stringPreviewBuilder.length) {
+                    stringPreviewBuilder.append(' ')
+                }
+                val appendix =
+                    "$stringPreviewBuilder //    ..'${latinCharacters[widthsArray.indices.last]}'"
+                appendFontFile("            $appendix", "                $appendix")
+                stringPreviewBuilder.clear()
+            }
+
+            // append font widths array
+            appendFontFile(
+                "    };\n\n    public static final FontItem FONT = new FontItem(\n" +
+                        "            \"${fontParams.fontName.toUpperCase()}_${fontParams.fontSize.toInt()}PX\",\n" +
+                        "            charsPixels,\n" +
+                        "            widths\n" +
+                        "    );\n}",
+                "            )\n        )\n    }\n}"
+            )
+
+            appendFontFile(
+                "// Max Character Bitmap $pixelWidthMax x $pixelHeightMax ${
+                if (fontParams.divider > 1) "Divider ${fontParams.divider}" else ""
+                } Offsets [Top=${fontParams.topOffset}, Bottom=${fontParams.bottomOffset}]" +
+                        "\n// Mass Matrix - merged text preview from all characters rendered into one map"
+            )
+//            val fontPreview = fontPreviewArray[fontIndex]!!
+//            val pixelsSize = fontPreview.pixels.size
+            for (y in 0 until min(pixelHeightMax, pixelsSize)) {
+                val pixels = fontPreview.pixels[y]
+                for (x in 0 until min(pixelWidthMax, pixelsSize)) {
+                    stringPreviewBuilder.append(if (pixels[x]) '#' else '.')  // preview '#' as pixel on and '.' as an empty pixel
+                }
+                appendFontFile("// Mass Matrix $stringPreviewBuilder $y")
+                stringPreviewBuilder.clear()
+            }
+            // write file content builder to output file
+            for (i in fontFiles.indices) {
+                fontFiles[i].sink(false).buffer().use {
+                    it.write(stringFileBuilders[i].toString().encodeUtf8())
+                }
+                stringFileBuilders[i].clear()
+            }
+
+            if (fontPreview.bitmap != null) {
+                // render the 1st bitmap message font preview
+                fontPreview.renderGraphicsMessageCompacted3(skLatinChars)
+                updatePreviewBitmap(fontPreview.bitmap!!)
+                // write file preview bitmap 2
+                writePreviewBitmapFile(fontBitmapFiles[0], fontPreview.bitmap!!)
+                // render the 2nd bitmap message font preview
+                fontPreview.renderGraphicsMessageCompacted3()
+                writePreviewBitmapFile(fontBitmapFiles[1], fontPreview.bitmap!!)
             }
         }
     }
 
-    /**
-     * appends end of array at an font chars map rendering or font widths array generation
-     * Following parts are added
-     *
-     *  - end of array
-     *  - java FontItem FONT object
-     *  - Max character bitmap info and
-     *  - Mass heat matrix text preview from all characters rendered into one map
-     */
-    private fun writeArrayEnd(fontParams: FontParams) {
-        appendFontFile(
-            "    };\n    private static final int[] widths = {",
-            "            ),\n            widths = intArrayOf("
-        )
-
-        val widthsArray = fontPreview.widthsArray
-        for (i in widthsArray.indices) {
-            stringPreviewBuilder.append(widthsArray[i])
-                .append(if (i < FontPreview.ASCII_LATIN_COUNT - 1) "," else "")
-            if (i % 10 == 9) {
-                for (j in 0..29 - stringPreviewBuilder.length) {
-                    stringPreviewBuilder.append(' ')
-                }
-                val firstChar = latinCharacters[i - 9]
-                appendHexString(stringHexBuilder, firstChar.toInt())
-                val appendix =
-                    "$stringPreviewBuilder // '$firstChar'..'${latinCharacters[i]}' $stringHexBuilder"
-                appendFontFile("            $appendix", "                $appendix")
-                stringPreviewBuilder.clear()
-                stringHexBuilder.clear()
+    private fun writePreviewBitmapFile(fontBitmapFile: File, previewBitmap: Bitmap) {
+        fontBitmapFile.sink(false).buffer().use {
+            ByteArrayOutputStream(8000).use { outStream ->
+                previewBitmap.compress(Bitmap.CompressFormat.WEBP, 100, outStream)
+                it.write(outStream.toByteArray())
             }
-        }
-        if (stringPreviewBuilder.isNotEmpty()) {
-            for (j in 0..29 - stringPreviewBuilder.length) {
-                stringPreviewBuilder.append(' ')
-            }
-            val appendix =
-                "$stringPreviewBuilder //    ..'${latinCharacters[widthsArray.indices.last]}'"
-            appendFontFile("            $appendix", "                $appendix")
-            stringPreviewBuilder.clear()
-        }
-        appendFontFile(
-            "    };\n\n    public static final FontItem FONT = new FontItem(\n" +
-                    "            \"${fontParams.fontName.toUpperCase()}_${fontParams.fontSize.toInt()}PX\",\n" +
-                    "            charsPixels,\n" +
-                    "            widths\n" +
-                    "    );\n}",
-            "            )\n        )\n    }\n}"
-        )
-
-        appendFontFile(
-            "// Max Character Bitmap $pixelWidthMax x $pixelHeightMax ${
-            if (fontParams.divider > 1) "Divider ${fontParams.divider}" else ""
-            } Offsets [Top=${fontParams.topOffset}, Bottom=${fontParams.bottomOffset}]" +
-                    "\n// Mass Matrix - merged text preview from all characters rendered into one map"
-        )
-        for (y in 0 until min(pixelHeightMax, pixels.size)) {
-            for (x in 0 until min(pixelWidthMax, pixels.size)) {
-                stringPreviewBuilder.append(if (pixels[y][x]) '#' else '.')  // preview '#' as pixel on and '.' as an empty pixel
-            }
-            appendFontFile("// Mass Matrix $stringPreviewBuilder $y")
-            stringPreviewBuilder.clear()
-        }
-        // write file content builder to output file
-        for (i in fontFiles.indices) {
-            fontFiles[i].sink(false).buffer().use {
-                it.write(stringFileBuilders[i].toString().encodeUtf8())
-            }
-            stringFileBuilders[i].clear()
         }
     }
 
@@ -295,16 +300,6 @@ class FontRender {
     }
 
     /**
-     * check preview bitmap exists.
-     * At rendering finish a message rendered by generated font bytes will be written onto this preview bitmap.
-     */
-    private fun checkPreviewFontBitmap(previewImage: ImageView) {
-        if (fontPreview.overlayBitmap == null) {
-            previewImage.setImageBitmap(fontPreview.createImageBitmap(1))
-        }
-    }
-
-    /**
      * creates characters array containing:
      * 1.) basic alphabets and signs ASCII[32..126]
      *   !"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~
@@ -323,13 +318,14 @@ class FontRender {
     }
 
     /**
-     * get declared native font size to use for rendering 
+     * get declared native font size to use for rendering
      */
     fun getFontParams(fontIndex: Int) = FONT_PARAMS[fontIndex]
 
     fun getFontsCount(): Int = FONT_PARAMS.size
 
-    fun getFontParamsList() = FONT_PARAMS.mapIndexed { index, fontParams -> "$index. ${fontParams.fontName} ${fontParams.fontSize.toInt()}px" }.toMutableList()
+    fun getFontParamsList() =
+        FONT_PARAMS.mapIndexed { index, fontParams -> "$index. ${fontParams.fontName} ${fontParams.fontSize.toInt()}px" }.toMutableList()
 
     /**
      * rendering related data for each true type font found within res/font
@@ -344,16 +340,17 @@ class FontRender {
         internal var fontRes: Int,
         internal var fontName: String
     )
-    
+
     companion object {
 
         private const val HEX_VALUES_LINE_LIMIT = 14
-        private const val FONT_SIZE = 16f
         private const val LANG_KOTLIN = 0
         private const val LANG_JAVA = 1
         private const val LANG_C = 2
         private const val LANG_PYTHON = 3
 
+        private const val skLatinChars =
+            "ľščťžýáíéúäňôČŇĽĎŠŽŤ~${161.toChar()}${190.toChar()}${191.toChar()}${192.toChar()}1234567890aijklmqrtyABDEQ"
         /**
          * array of rendering related data for all provided and supported font resources
          * for all new font resources, here the font related data must be added or altered

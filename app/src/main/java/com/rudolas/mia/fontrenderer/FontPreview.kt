@@ -5,12 +5,25 @@ import android.graphics.Color
 import java.io.IOException
 import java.util.ArrayList
 
-class FontPreview {
-
+class FontPreview(
+    multiplier: Int,
+    fontSizeDim: Int,
+    val arrayNameCamel: String
+) {
     val previewMapBuilder = Array<ArrayList<Int>>(ASCII_LATIN_COUNT) { arrayListOf() }
     val widthsArray = IntArray(ASCII_LATIN_COUNT)
-    var overlayBitmap: Bitmap? = null
+    var bitmap: Bitmap? = null
+    internal var pixels: Array<Array<Boolean>> = emptyArray()
 
+    init {
+        bitmap = Bitmap.createBitmap(
+            multiplier * 128 + 2 * IMAGE_OFFSET,
+            multiplier * 96 + 2 * IMAGE_OFFSET,
+            Bitmap.Config.ARGB_8888
+        )
+        logMsg("CREATED $arrayNameCamel FontPreview BITMAP ${multiplier * 128} x ${multiplier * 64} ")
+        pixels = Array(fontSizeDim) { Array(fontSizeDim) { false } }
+    }
     /**
      * show message for selected font - compacted to fit the display screen
      *
@@ -98,14 +111,14 @@ class FontPreview {
      * clear preview bitmap
      */
     private fun clearBitmap() {
-        val width = overlayBitmap?.width ?: -1
-        val height = overlayBitmap?.height ?: -1
+        val width = bitmap?.width ?: -1
+        val height = bitmap?.height ?: -1
         logMsg("clearBitmap [$width, $height]")
         if (width < 0 || height < 0) {
             throw IllegalArgumentException("pixels out of bound: w:h[$width, $height]")
         }
         val pixels = IntArray(width * height) { COLOR_SCREEN_BLUE }
-        overlayBitmap?.setPixels(pixels, 0, width, 0, 0, width, height)
+        bitmap?.setPixels(pixels, 0, width, 0, 0, width, height)
     }
 
     /**
@@ -125,13 +138,13 @@ class FontPreview {
 
         for (i in 0 until arrayLength) {
             val value = if (onArray[i]) Color.WHITE else COLOR_SCREEN_BLUE
-            overlayBitmap?.setPixel(IMAGE_OFFSET + x + i, IMAGE_OFFSET + y, value)
+            bitmap?.setPixel(IMAGE_OFFSET + x + i, IMAGE_OFFSET + y, value)
         }
     }
 
-    private fun getScreenHeight() = (overlayBitmap?.height ?: -1) - 2 * IMAGE_OFFSET
+    private fun getScreenHeight() = (bitmap?.height ?: -1) - 2 * IMAGE_OFFSET
 
-    private fun getScreenWidth() = (overlayBitmap?.width ?: -1) - 2 * IMAGE_OFFSET
+    private fun getScreenWidth() = (bitmap?.width ?: -1) - 2 * IMAGE_OFFSET
 
     private fun getFontDataWidth(charValue: Char): Int = widthsArray[charToFontIndex(charValue)]
 
@@ -141,16 +154,6 @@ class FontPreview {
         } else {
             previewMapBuilder[charToFontIndex(charValue)].toIntArray()
         }
-    }
-
-    fun createImageBitmap(multiplier: Int): Bitmap {
-        overlayBitmap = Bitmap.createBitmap(
-            multiplier * 128 + 2 * IMAGE_OFFSET,
-            multiplier * 96 + 2 * IMAGE_OFFSET,
-            Bitmap.Config.ARGB_8888
-        )
-        logMsg("CREATED BITMAP ${multiplier * 128} x ${multiplier * 64}")
-        return overlayBitmap!!
     }
 
     companion object {

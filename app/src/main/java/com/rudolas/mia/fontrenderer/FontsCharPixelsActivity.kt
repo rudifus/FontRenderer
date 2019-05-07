@@ -242,10 +242,7 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
             previewFontCharactersCodeArray()
         } else {
 //            fontIndex = 4
-            generateFontCharactersCodeArray(
-                true
-//                , toGenerateCharPixelsPreview = true
-            )
+            generateFontCharactersCodeArray(true)
         }
     }
 
@@ -253,7 +250,6 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
      * preview latin ascii chars for all available fonts from /res/font directory
      */
     private fun previewFontCharactersCodeArray() {
-//        val skChars = "ľščťžýáíéúäňôČŇĽĎŠŽŤ~${161.toChar()}${190.toChar()}${191.toChar()}${192.toChar()}"
         //        val fontChars = "abcdefghijklmnoprqstuvwxyz ABCDEFGHIJKLMNOPRQSTUVWXYZ \n1234567890_+=:.,;/!?<>{}[]()"
 
         val latinCharacters = fontRender.getExtendedLatinCharactersString()
@@ -329,19 +325,18 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
      */
     private fun generateFontCharactersCodeArray(
         toCheckBitmaps: Boolean = false,
-        toRender: Boolean = false,
-        toGenerateCharPixelsPreview: Boolean = false
+        toRender: Boolean = false
+//        toGenerateCharPixelsPreview: Boolean = false
     ) {
-//        val latinCharacters = "!8"
         val latinCharacters = fontRender.getExtendedLatinCharactersString()
         charIndex = 0
-        logMsg("SK: Generate ${latinCharacters.length} start charIndex $charIndex")
+//        logMsg("SK: Generate ${latinCharacters.length} start charIndex $charIndex")
 
         val toCreate = fontTexts.childCount == 0
         updateFontPreview(fontIndex, latinCharacters, toCheckBitmaps, toCreate)
 
         if (toCreate || !toRender && onGlobalLayoutListenerBitmapsCheck == null || toRender) {
-            addGlobalLayoutListener(latinCharacters, toCheckBitmaps, toGenerateCharPixelsPreview)
+            addGlobalLayoutListener(latinCharacters, toCheckBitmaps)
         }
     }
 
@@ -352,13 +347,13 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
      *
      * @param latinCharacters string as an array of latin ascii chars to render
      * @param toCheckBitmaps true to preview 5px..64px font sizes into rendered char bitmaps, otherwise false to avoid bitmaps rendering
-     * @param toGenerateCharPixelsPreview true to generate text form character pixels map , where preview '#' as pixel on and '.' as an empty pixel
+     * //@param toGenerateCharPixelsPreview true to generate text form character pixels map , where preview '#' as pixel on and '.' as an empty pixel
      *
      */
     private fun addGlobalLayoutListener(
         latinCharacters: String,
-        toCheckBitmaps: Boolean,
-        toGenerateCharPixelsPreview: Boolean
+        toCheckBitmaps: Boolean
+//        toGenerateCharPixelsPreview: Boolean
     ) {
         fontTexts.viewTreeObserver.addOnGlobalLayoutListener(
             if (toCheckBitmaps) {
@@ -420,13 +415,12 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
             } else {
                 object : ViewTreeObserver.OnGlobalLayoutListener {
                     override fun onGlobalLayout() {
-                        if (charIndex <= 1 || charIndex >= 315) {
+                        if (charIndex < 1 || charIndex > 315) {
                             logMsg("SK: GlobalLayout [$fontIndex] NO BitmapsCheck charIndex $charIndex ${
                             if (fixedThreadPool == null) "Null" else "Threads1"} '${latinCharacters[charIndex]}'")
                         }
                         val measuredWidth = fontCharTextView.measuredWidth
                         val measuredHeight = fontCharTextView.measuredHeight
-                        //                logMsg("SK: [$index] $fontName [$charIndex] ${fontCharTextView.text}")
                         val isEmpty = measuredWidth == 0 || measuredHeight == 0
                         val charBitmap = Bitmap.createBitmap(
                             if (isEmpty) 1 else measuredWidth,
@@ -439,12 +433,16 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
                         val charIndex2 = charIndex
 //                        fixedThreadPool?.submit {
                             fontRender.processCharacterBitmap(
-                                previewImage,
                                 fontIndex2,
                                 charIndex2,
-                                charBitmap,
-                                toGenerateCharPixelsPreview
-                            )
+                                charBitmap
+//                                toGenerateCharPixelsPreview
+                            ) {
+                                runOnUiThread {
+                                    previewImage.setImageBitmap(it)
+//                                    previewImage.invalidate()
+                                }
+                            }
 //                        }
 
                         when {
@@ -476,6 +474,9 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
         )
     }
 
+    /**
+     * get font params for the current font index
+     */
     private fun getActFontParams() = fontRender.getFontParams(fontIndex)
 
     /**
@@ -604,17 +605,14 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
 
         private const val ACTION_DETAIL = "ACTION_DETAIL"
 
-        //        val charsToShowAsBitmaps = "8"
-//        private const val charsToShowAsBitmaps = "8Ź"
         /**
          * ascii characters used for bitmap chars preview for font all font sizes from range 5px .. 64px
-         * usually fonts are rendered for font sizes up to 24px, bigger fonts izes lead to excessive code generation for target languages.
+         * usually fonts are rendered for font sizes up to 24px, bigger fonts sizes lead to excessive code generation for target languages.
          * To avoid font bytes code compilation troubles, e.g. java code too large,
          * keep font sizes to match native font sizes or as low as possible to render non excessive bitmap sizes.
          */
         private const val charsToShowAsBitmaps = "ýô" // "ýô8Ź0#"
         private const val skChars = "8Ź!01#\$/@QÁŽČčĎŢţŤťáäýóô"
-//        private const val charsToShowAsBitmaps = "8Ź!01#\$/@QÁŽČčĎŢţŤťáäýóôaefghijklmnpqrwxy"
 
         private fun logMsg(msg: String) = android.util.Log.d("FontsCharPixelsActivity", msg)
     }
