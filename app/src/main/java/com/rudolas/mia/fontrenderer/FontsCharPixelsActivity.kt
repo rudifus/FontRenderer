@@ -26,6 +26,7 @@ import kotlin.math.max
 import kotlin.text.StringBuilder
 import pub.devrel.easypermissions.EasyPermissions
 import pub.devrel.easypermissions.AfterPermissionGranted
+import java.io.ByteArrayOutputStream
 import kotlin.math.min
 
 /**
@@ -169,7 +170,7 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
         return when (item.itemId) {
             android.R.id.home -> onBackPressed().let { true }
             R.id.menuGoTo -> showGoToFontDialog().let { true }
-            R.id.menuPreview -> showPreviewFontFrame().let { true }
+            R.id.menuPreview -> checkPreviewFontBitmap().let { true }
             R.id.menuRender -> startRenderFont().let { true }
             else -> super.onOptionsItemSelected(item)
         }
@@ -440,6 +441,7 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
                     private var pixelWidthMax: Int = 0
                     private var pixelHeightMax: Int = 0
                     private lateinit var fontFiles: Array<File>
+                    private lateinit var fontBitmapFile: File
 
                     override fun onGlobalLayout() {
 
@@ -480,7 +482,7 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
                             val downloadDir = File(Environment.getExternalStorageDirectory(), "Download")
                             val fontsDir = File(downloadDir, "Fonts")
                             if (!fontsDir.exists() && !fontsDir.mkdir()) {
-                                logMsg("CANNOT ACCESS KeywordsDownload directory")
+                                logMsg("CANNOT ACCESS Fonts directory")
                                 return
                             }
                             fontFiles = Array(2) {
@@ -490,14 +492,21 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
                                     }
                                 }
                             }
-                            showPreviewFontFrame()
+                            val fontBitmapsDir = File(downloadDir, "FontBitmaps")
+                            if (!fontBitmapsDir.exists() && !fontBitmapsDir.mkdir()) {
+                                logMsg("CANNOT ACCESS FontBitmaps directory")
+                                return
+                            }
+                            fontBitmapFile = File(fontBitmapsDir, "$arrayNameCamel.webp")
+                            checkPreviewFontBitmap()
                         }
 
                         val divider = fontParams.divider
                         fontCharTextView.draw(Canvas(charBitmap))
                         // ignore char 64 line feed
-                        val bitmapWidth = if (charIndex == 64) 1 else charBitmap.width / divider
-                        val bitmapHeight = (charBitmap.height - fontParams.bottomOffset) / divider
+                        val bitmapWidth = if (charBitmap.width >= pixels.size) 1 else charBitmap.width / divider
+                        val bitmapHeight =
+                            if (charBitmap.height - fontParams.bottomOffset >= pixels.size) 1 else (charBitmap.height - fontParams.bottomOffset) / divider
                         fontPreview.widthsArray[charIndex] = bitmapWidth
 
 //                        val hasNoTopOffset = fontParams.topOffset == 0
@@ -582,6 +591,13 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
                                 if (fontPreview.overlayBitmap != null) {
                                     fontPreview.renderGraphicsMessageCompacted3()
                                     previewImage.invalidate()
+                                    // write file content builder to output file
+                                    fontBitmapFile.sink(false).buffer().use {
+                                        ByteArrayOutputStream(8000).use {outStream ->
+                                            fontPreview.overlayBitmap?.compress(Bitmap.CompressFormat.WEBP, 100, outStream)
+                                            it.write(outStream.toByteArray())
+                                        }
+                                    }
                                 }
                                 val isContinuousRendering = fontIndex < FONT_PARAMS.size - 1
                                 logMsg("SK: Render [$fontIndex] $fontName ${fontParams.fontSize.toInt()}px ${if (isContinuousRendering) "CONTINUOUS" else "SINGLE"} $charText")
@@ -798,9 +814,10 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
     }
 
     /**
-     * show frame with message rendered by generated font bytes
+     * check preview bitmap exists.
+     * At rendering finish a message rendered by generated font bytes will be written onto this preview bitmap.
      */
-    private fun showPreviewFontFrame() {
+    private fun checkPreviewFontBitmap() {
         if (fontPreview.overlayBitmap == null) {
             previewImage.setImageBitmap(fontPreview.createImageBitmap(1))
         }
@@ -901,7 +918,7 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
             FontParams(fontSize = 16f, fontRes = R.font.alterebro_pixel_font, fontName = "alterebro_pixel_font"),
             FontParams(
                 fontSize = 16f, fontRes = R.font.american_cursive, fontName = "american_cursive",
-                divider = 1, topOffset = 0, bottomOffset = 0
+                divider = 2, topOffset = 0, bottomOffset = 0
             ),
             FontParams(fontSize = 16f, fontRes = R.font.andina, fontName = "andina"), //27
             FontParams(fontSize = 16f, fontRes = R.font.angie_atore, fontName = "angie_atore"),

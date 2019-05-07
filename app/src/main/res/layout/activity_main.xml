@@ -26,14 +26,14 @@
     </ScrollView>
 
     <ImageView
-            android:layout_margin="12dp"
-            android:id="@+id/previewImage"
+            android:layout_margin="2dp"
             android:layout_gravity="bottom"
+            android:id="@+id/previewImage"
             android:scaleType="fitCenter"
             android:layout_width="match_parent"
             android:layout_height="320dp"
-            android:background="@android:color/black"
             android:visibility="gone"
             tools:visibility="visible"
+            tools:src="@color/screenBlue"
             />
 </FrameLayout>

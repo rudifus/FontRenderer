@@ -22,8 +22,8 @@ class FontPreview {
         var rowIndex = rowOffset
         var lastRowEndCharIndex = -1
         val messageLength = message.length
-        val width = overlayBitmap?.width ?: -1
-        val height = overlayBitmap?.height ?: -1
+        val width = getScreenWidth()
+        val height = getScreenHeight()
 
         clearBitmap()
         val widths = ArrayList<Int>(20)
@@ -36,10 +36,10 @@ class FontPreview {
                 val charValue = message[nextCharIndex]
                 val charPixelsWidth = getFontDataWidth(charValue)
                 widths.add(charPixelsWidth)
-                logMsg(
-                    "pixels[$rowIndex, $nextCharIndex] '$charValue' dataIndex ${charToFontIndex(charValue)}" +
-                            ' '.toString() + pixelCount + " Pixels " + charPixelsWidth
-                )
+//                logMsg(
+//                    "pixels[$rowIndex, $nextCharIndex] '$charValue' dataIndex ${charToFontIndex(charValue)}" +
+//                            ' '.toString() + pixelCount + " Pixels " + charPixelsWidth
+//                )
                 if (pixelCount + charPixelsWidth > width) {
                     break
                 }
@@ -52,8 +52,7 @@ class FontPreview {
             lastRowEndCharIndex = charIndex
             val charArray = message.substring(startIndex, startIndex + rowSize).toCharArray()
 
-            logMsg("row[$rowIndex, $charIndex]  chars $rowSize")
-            //            final int width = new int[rowSize][];
+//            logMsg("row[$rowIndex, $charIndex]  chars $rowSize")
 
             val charsDataList = ArrayList<IntArray>(rowSize)
             for (i in 0 until rowSize) {
@@ -105,7 +104,7 @@ class FontPreview {
         if (width < 0 || height < 0) {
             throw IllegalArgumentException("pixels out of bound: w:h[$width, $height]")
         }
-        val pixels = IntArray(width * height) { Color.BLACK }
+        val pixels = IntArray(width * height) { COLOR_SCREEN_BLUE }
         overlayBitmap?.setPixels(pixels, 0, width, 0, 0, width, height)
     }
 
@@ -118,17 +117,21 @@ class FontPreview {
         if (arrayLength == 0) {
             throw IllegalArgumentException("empty pixel array not allowed")
         }
-        val width = overlayBitmap?.width ?: -1
-        val height = overlayBitmap?.height ?: -1
+        val width = getScreenWidth()
+        val height = getScreenHeight()
         if (x < 0 || y < 0 || width < 0 || height < 0 || x >= width || y >= height) {
             throw IllegalArgumentException("pixel out of bound:$x,$y  w:h[$width, $height]")
         }
 
         for (i in 0 until arrayLength) {
-            val value = if (onArray[i]) Color.WHITE else Color.BLACK
-            overlayBitmap?.setPixel(x + i, y, value)
+            val value = if (onArray[i]) Color.WHITE else COLOR_SCREEN_BLUE
+            overlayBitmap?.setPixel(IMAGE_OFFSET + x + i, IMAGE_OFFSET + y, value)
         }
     }
+
+    private fun getScreenHeight() = (overlayBitmap?.height ?: -1) - 2 * IMAGE_OFFSET
+
+    private fun getScreenWidth() = (overlayBitmap?.width ?: -1) - 2 * IMAGE_OFFSET
 
     private fun getFontDataWidth(charValue: Char): Int = widthsArray[charToFontIndex(charValue)]
 
@@ -136,20 +139,24 @@ class FontPreview {
         return if (dataType == FONT_DATA_WIDTH) {
             intArrayOf(widthsArray[charToFontIndex(charValue)])
         } else {
-            previewMapBuilder[charToFontIndex(charValue)].toIntArray().apply {
-                logMsg("Font DATA[$size] ${this[0]}")
-            }
+            previewMapBuilder[charToFontIndex(charValue)].toIntArray()
         }
     }
 
     fun createImageBitmap(multiplier: Int): Bitmap {
-        overlayBitmap = Bitmap.createBitmap(multiplier * 128, multiplier * 128, Bitmap.Config.ARGB_8888)
+        overlayBitmap = Bitmap.createBitmap(
+            multiplier * 128 + 2 * IMAGE_OFFSET,
+            multiplier * 96 + 2 * IMAGE_OFFSET,
+            Bitmap.Config.ARGB_8888
+        )
         logMsg("CREATED BITMAP ${multiplier * 128} x ${multiplier * 64}")
         return overlayBitmap!!
     }
 
     companion object {
 
+        const val IMAGE_OFFSET: Int = 8
+        private val COLOR_SCREEN_BLUE: Int = Color.rgb(64, 32, 255)
         private const val FONT_DATA = 0
         private const val FONT_DATA_WIDTH = 1
         private const val MESSAGE =
