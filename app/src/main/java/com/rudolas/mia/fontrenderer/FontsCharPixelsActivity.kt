@@ -19,6 +19,9 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import pub.devrel.easypermissions.EasyPermissions
 import pub.devrel.easypermissions.AfterPermissionGranted
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import kotlin.math.min
 
 /**
@@ -92,8 +95,10 @@ import kotlin.math.min
  *
  */
 class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
+    private var fixedThreadPool: ExecutorService? = null
     private var onGlobalLayoutListenerBitmapsCheck: ViewTreeObserver.OnGlobalLayoutListener? = null
     private var fontIndex = 0
+    private var charIndex = 0
     private lateinit var fontCharTextView: TextView
     private lateinit var fontTitleTextView: TextView
     private lateinit var fontLatinCharsView: TextView
@@ -146,6 +151,17 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
         methodRequiresStorageWritePermission()
     }
 
+    override fun onStop() {
+        super.onStop()
+        fixedThreadPool?.shutdown()
+        //        logMsgWithNumber("onDestroy Shutdown", 0);
+        try {
+            fixedThreadPool?.awaitTermination(3, TimeUnit.SECONDS)
+        } catch (e: InterruptedException) {
+            //
+        }
+    }
+
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.render, menu)
         if (!isDetailIntentAction()) {
@@ -186,7 +202,13 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
         val perms = arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE)
         if (EasyPermissions.hasPermissions(this, *perms)) {
             // Already have permission, do the thing
-            previewOrGeneratePixelCodeArrays(!isDetailIntentAction())
+            val detailIntentAction = isDetailIntentAction()
+            if (detailIntentAction) {
+                if (fixedThreadPool == null) {
+                    fixedThreadPool = Executors.newFixedThreadPool(1)
+                }
+            }
+            previewOrGeneratePixelCodeArrays(!detailIntentAction)
         } else {
             // Do not have permissions, request them now
             EasyPermissions.requestPermissions(
@@ -312,7 +334,9 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
     ) {
 //        val latinCharacters = "!8"
         val latinCharacters = fontRender.getExtendedLatinCharactersString()
-//        logMsg("SK: ${latinCharacters.length}")
+        charIndex = 0
+        logMsg("SK: Generate ${latinCharacters.length} start charIndex $charIndex")
+
         val toCreate = fontTexts.childCount == 0
         updateFontPreview(fontIndex, latinCharacters, toCheckBitmaps, toCreate)
 
@@ -339,11 +363,11 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
         fontTexts.viewTreeObserver.addOnGlobalLayoutListener(
             if (toCheckBitmaps) {
                 object : ViewTreeObserver.OnGlobalLayoutListener {
-                    private var charIndex = 0
+                    private var bitmapCharIndex = 0
 
                     override fun onGlobalLayout() {
-                        if (charIndex >= charsToShowAsBitmaps.length) {
-                            charIndex = 0
+                        if (bitmapCharIndex >= charsToShowAsBitmaps.length) {
+                            bitmapCharIndex = 0
                             return
                         }
                         val measuredWidth = fontCharTextView.measuredWidth
@@ -372,7 +396,7 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
                         val toSwap = textSize == 64
                         setCharTextSize(if (toSwap) 5f else textSize.toFloat() + 1)
                         val scaleFactor = SCALE * (if (diff < BITMAPS_COUNT) 2 else 1)
-                        (bitmapsLayouts?.get(BITMAPS_LINES * charIndex + (diff / BITMAPS_COUNT))?.getChildAt((diff % BITMAPS_COUNT) * 2) as? ImageView)
+                        (bitmapsLayouts?.get(BITMAPS_LINES * bitmapCharIndex + (diff / BITMAPS_COUNT))?.getChildAt((diff % BITMAPS_COUNT) * 2) as? ImageView)
 //                            .apply { logMsg("SK: bitmapsLayouts [${3 * charIndex + (diff / BITMAPS_COUNT)}] ${diff / BITMAPS_COUNT} child ${diff % BITMAPS_COUNT}") }
                             ?.setImageBitmap(
                                 Bitmap.createScaledBitmap(
@@ -385,8 +409,8 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
                         charsBitmap.recycle()
                         if (!toSwap) {
                             //                        index = fonts[++fontIndex]
-                        } else if (++charIndex < charsToShowAsBitmaps.length) {
-                            fontCharTextView.text = charsToShowAsBitmaps[charIndex].toString()
+                        } else if (++bitmapCharIndex < charsToShowAsBitmaps.length) {
+                            fontCharTextView.text = charsToShowAsBitmaps[bitmapCharIndex].toString()
                         } else {
                             fontCharTextView.text = charsToShowAsBitmaps[0].toString()
                             //                            fontTexts.viewTreeObserver.removeOnGlobalLayoutListener(this)
@@ -395,10 +419,11 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
                 }.apply { onGlobalLayoutListenerBitmapsCheck = this }
             } else {
                 object : ViewTreeObserver.OnGlobalLayoutListener {
-                    private var charIndex = 0
-
                     override fun onGlobalLayout() {
-
+                        if (charIndex <= 1 || charIndex >= 315) {
+                            logMsg("SK: GlobalLayout [$fontIndex] NO BitmapsCheck charIndex $charIndex ${
+                            if (fixedThreadPool == null) "Null" else "Threads1"} '${latinCharacters[charIndex]}'")
+                        }
                         val measuredWidth = fontCharTextView.measuredWidth
                         val measuredHeight = fontCharTextView.measuredHeight
                         //                logMsg("SK: [$index] $fontName [$charIndex] ${fontCharTextView.text}")
@@ -410,14 +435,16 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
                         )
                         fontCharTextView.draw(Canvas(charBitmap))
 
-//                        AsyncTask.execute {
-                        fontRender.processCharacterBitmap(
-                            previewImage,
-                            fontIndex,
-                            charIndex,
-                            charBitmap,
-                            toGenerateCharPixelsPreview
-                        )
+                        val fontIndex2 = fontIndex
+                        val charIndex2 = charIndex
+//                        fixedThreadPool?.submit {
+                            fontRender.processCharacterBitmap(
+                                previewImage,
+                                fontIndex2,
+                                charIndex2,
+                                charBitmap,
+                                toGenerateCharPixelsPreview
+                            )
 //                        }
 
                         when {
@@ -483,10 +510,10 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
                 fontTexts.addView(this)
             }
 
-            val frame = layoutInflater.inflate(R.layout.text_view_framed, fontTexts, false) as ViewGroup
-            fontTexts.addView(frame)
-            fontCharTextView = frame.getChildAt(0) as TextView
-            with(fontCharTextView) {
+            val frame = layoutInflater.inflate(R.layout.text_view_framed, fontFrame, false) as ViewGroup
+            fontFrame.addView(frame)
+            with(frame.getChildAt(0) as TextView) {
+                fontCharTextView = this
                 //                text = fontChars
                 text = (if (toCheckBitmaps) charsToShowAsBitmaps[0] else latinCharacters[0]).toString()
                 setTextSize(TypedValue.COMPLEX_UNIT_PX, if (toCheckBitmaps) 5f else fontParams.fontSize)
@@ -500,10 +527,10 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
                 fontTexts.addView(this)
             }
             // spacer
-            with(inflateTextView(R.layout.text_view_centered)) {
-                //            background = BitmapDrawable(resources, textAsBitmap("ľščťžýáíéúäňôČŇĽĎŠŽŤ", 36f, Color.BLACK))
-                fontTexts.addView(this)
-            }
+//            with(inflateTextView(R.layout.text_view_centered)) {
+//                //            background = BitmapDrawable(resources, textAsBitmap("ľščťžýáíéúäňôČŇĽĎŠŽŤ", 36f, Color.BLACK))
+//                fontTexts.addView(this)
+//            }
         }
 
         fontTitleTextView.text = "$index. ${fontParams.fontName} ${fontParams.fontSize.toInt()}px"
@@ -585,7 +612,7 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
          * To avoid font bytes code compilation troubles, e.g. java code too large,
          * keep font sizes to match native font sizes or as low as possible to render non excessive bitmap sizes.
          */
-        private const val charsToShowAsBitmaps = "ýô8Ź0#"
+        private const val charsToShowAsBitmaps = "ýô" // "ýô8Ź0#"
         private const val skChars = "8Ź!01#\$/@QÁŽČčĎŢţŤťáäýóô"
 //        private const val charsToShowAsBitmaps = "8Ź!01#\$/@QÁŽČčĎŢţŤťáäýóôaefghijklmnpqrwxy"
 

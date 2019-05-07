@@ -135,7 +135,7 @@ class FontRender {
                 stringHexBuilder.append(' ')
             }
         }
-        val isNotLastChar = charIndex < ASCII_LATIN_COUNT - 1
+        val isNotLastChar = charIndex < FontPreview.ASCII_LATIN_COUNT - 1
         if (!isNotLastChar) {
             stringHexBuilder.append(' ')
         }
@@ -162,7 +162,7 @@ class FontRender {
             )
         }
         charBitmap.recycle() // recycle manually if not assigned to imageView
-        if (charIndex + 1 >= latinCharacters.length) {
+        if (charIndex + 1 >= FontPreview.ASCII_LATIN_COUNT) {
             val isContinuousRendering = fontIndex < getFontsCount() - 1
             logMsg("SK: Render [$fontIndex] $fontName ${fontParams.fontSize.toInt()}px ${if (isContinuousRendering) "CONTINUOUS" else "SINGLE"} ${latinCharacters[charIndex]}")
             writeArrayEnd(fontParams)
@@ -204,7 +204,7 @@ class FontRender {
         val widthsArray = fontPreview.widthsArray
         for (i in widthsArray.indices) {
             stringPreviewBuilder.append(widthsArray[i])
-                .append(if (i < ASCII_LATIN_COUNT - 1) "," else "")
+                .append(if (i < FontPreview.ASCII_LATIN_COUNT - 1) "," else "")
             if (i % 10 == 9) {
                 for (j in 0..29 - stringPreviewBuilder.length) {
                     stringPreviewBuilder.append(' ')
@@ -315,8 +315,8 @@ class FontRender {
      *   ŔŕŖŗŘřŚśŜŝŞşŠšŢţŤťŦŧŨũŪūŬŭŮůŰűŲųŴŵŶŷŸŹźŻżŽž
      */
     fun getExtendedLatinCharactersString(): String {
-        val strBuilder = StringBuilder(ASCII_LATIN_COUNT)
-        for (int in ASCII_LATIN_RANGE1 + ASCII_LATIN_RANGE2) {
+        val strBuilder = StringBuilder(FontPreview.ASCII_LATIN_COUNT)
+        for (int in FontPreview.ASCII_LATIN_RANGE1 + FontPreview.ASCII_LATIN_RANGE2) {
             strBuilder.append(int.toChar())
         }
         return strBuilder.toString()
@@ -353,7 +353,6 @@ class FontRender {
         private const val LANG_JAVA = 1
         private const val LANG_C = 2
         private const val LANG_PYTHON = 3
-
 
         /**
          * array of rendering related data for all provided and supported font resources
@@ -1834,18 +1833,6 @@ class FontRender {
                 fontName = "yacarena_ultra_personal_use"
             )
         )
-
-        /**
-         * supported basic ascii characters
-         */
-        private val ASCII_LATIN_RANGE1 = 32..126    // space .. ~
-        /**
-         * supported extended latin ascii chars
-         * optionally additional greek and coptic, armenian, cyrillic, hebrew or arabic ASCII subsets could be enabled
-         */
-        private val ASCII_LATIN_RANGE2 = 161..382 // ¡ .. À .. ž
-        private val ASCII_LATIN_COUNT =
-            ASCII_LATIN_RANGE1.last - ASCII_LATIN_RANGE1.first + ASCII_LATIN_RANGE2.last - ASCII_LATIN_RANGE2.first + 2
 
         private fun logMsg(msg: String) = android.util.Log.d("FontRender", msg)
     }

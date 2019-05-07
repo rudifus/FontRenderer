@@ -165,13 +165,14 @@ class FontPreview {
         /**
          * supported basic ascii characters
          */
-        private val ASCII_LATIN_RANGE1 = 32..126    // space .. ~
+        internal val ASCII_LATIN_RANGE1 = 32..126    // space .. ~
         /**
          * supported extended latin ascii chars
          * optionally additional greek and coptic, armenian, cyrillic, hebrew or arabic ASCII subsets could be enabled
          */
-        private val ASCII_LATIN_RANGE2 = 161..382 // ¡ .. À .. ž
-        private val ASCII_LATIN_COUNT =
+        internal val ASCII_LATIN_RANGE2 = 161..382 // ¡ .. À .. ž
+
+        internal val ASCII_LATIN_COUNT =
             ASCII_LATIN_RANGE1.last - ASCII_LATIN_RANGE1.first + ASCII_LATIN_RANGE2.last - ASCII_LATIN_RANGE2.first + 2
 
         private fun charToFontIndex(charValue: Char): Int {
