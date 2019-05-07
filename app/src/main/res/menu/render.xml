@@ -4,14 +4,20 @@
         >
     <item
             android:id="@+id/menuRender"
-            android:orderInCategory="99"
+            android:orderInCategory="98"
             android:title="@string/menuRender"
             app:showAsAction="always"
             />
     <item
             android:id="@+id/menuGoTo"
-            android:orderInCategory="100"
+            android:orderInCategory="99"
             android:title="@string/menuGoTo"
             app:showAsAction="ifRoom"
+            />
+    <item
+            android:id="@+id/menuPreview"
+            android:orderInCategory="100"
+            android:title="@string/menuPreview"
+            app:showAsAction="never"
             />
 </menu>

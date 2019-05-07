@@ -119,6 +119,7 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
     private lateinit var fontTitleTextView: TextView
     private lateinit var fontLatinCharsView: TextView
     private var bitmapsLayouts: Array<LinearLayout>? = null
+    private val fontPreview = FontPreview()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -130,6 +131,7 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
 
         if (isDetailIntentAction()) {
             supportActionBar?.setDisplayHomeAsUpEnabled(true)
+            previewImage.visibility = View.VISIBLE
         }
     }
 
@@ -167,6 +169,7 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
         return when (item.itemId) {
             android.R.id.home -> onBackPressed().let { true }
             R.id.menuGoTo -> showGoToFontDialog().let { true }
+            R.id.menuPreview -> showPreviewFontFrame().let { true }
             R.id.menuRender -> startRenderFont().let { true }
             else -> super.onOptionsItemSelected(item)
         }
@@ -432,7 +435,6 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
                     private val stringPreviewBuilder = StringBuilder(40)
                     private val stringHexBuilder = StringBuilder(40)
                     private val stringFileBuilders = Array(2) { StringBuilder(2000) }
-                    private val widthsArray = IntArray(ASCII_LATIN_COUNT)
                     private var charIndex = 0
                     private lateinit var pixels: Array<Array<Boolean>>
                     private var pixelWidthMax: Int = 0
@@ -488,6 +490,7 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
                                     }
                                 }
                             }
+                            showPreviewFontFrame()
                         }
 
                         val divider = fontParams.divider
@@ -495,15 +498,16 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
                         // ignore char 64 line feed
                         val bitmapWidth = if (charIndex == 64) 1 else charBitmap.width / divider
                         val bitmapHeight = (charBitmap.height - fontParams.bottomOffset) / divider
-                        widthsArray[charIndex] = bitmapWidth
+                        fontPreview.widthsArray[charIndex] = bitmapWidth
 
 //                        val hasNoTopOffset = fontParams.topOffset == 0
-                        if (/*hasNoTopOffset &&*/ charIndex != 64) {
+                        if (/*hasNoTopOffset &&*/ charIndex != 64 && bitmapHeight * divider < pixels.size && bitmapWidth * divider < pixels.size) {
                             pixelHeightMax = max(bitmapHeight, pixelHeightMax)
                             pixelWidthMax = max(bitmapWidth, pixelWidthMax)
 //                            logMsg("SK: Max bitmap $pixelWidthMax x $pixelHeightMax '${fontCharTextView.text}'")
                         }
                         val topOffset = fontParams.topOffset
+                        fontPreview.previewMapBuilder[charIndex].clear()
                         for (y in topOffset until bitmapHeight * divider step divider) {
                             var byte = 0
                             for (x in 0 until bitmapWidth * divider step divider) {
@@ -514,7 +518,9 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
                                     pixels[pixelY][pixelX] = true
                                 }
                                 val pixel = if (isPixelOn) 1 else 0
-                                byte += pixel shl (bitmapWidth - x / divider - 1)
+                                if (isPixelOn) {
+                                    byte += pixel shl (bitmapWidth - x / divider - 1)
+                                }
                                 if (toGenerateCharPixelsPreview) {
                                     stringPreviewBuilder.append(pixel)
                                 }
@@ -529,6 +535,7 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
                                     stringHexBuilder.append("\n ")
                                 }
                             }, byte)
+                            fontPreview.previewMapBuilder[charIndex].add(byte)
                         }
 
                         val rowBytes = stringHexBuilder.toString()
@@ -572,6 +579,10 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
                             else -> {
                                 writeArrayEnd()
                                 charIndex = 0
+                                if (fontPreview.overlayBitmap != null) {
+                                    fontPreview.renderGraphicsMessageCompacted3()
+                                    previewImage.invalidate()
+                                }
                                 val isContinuousRendering = fontIndex < FONT_PARAMS.size - 1
                                 logMsg("SK: Render [$fontIndex] $fontName ${fontParams.fontSize.toInt()}px ${if (isContinuousRendering) "CONTINUOUS" else "SINGLE"} $charText")
                                 // continue to render next view
@@ -645,6 +656,7 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
                             "            ),\n            widths = intArrayOf("
                         )
 
+                        val widthsArray = fontPreview.widthsArray
                         for (i in widthsArray.indices) {
                             stringPreviewBuilder.append(widthsArray[i])
                                 .append(if (i < ASCII_LATIN_COUNT - 1) "," else "")
@@ -702,7 +714,8 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
                         }
                     }
                 }
-            })
+            }
+        )
     }
 
     /**
@@ -782,6 +795,15 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
             strBuilder.append(int.toChar())
         }
         return strBuilder.toString()
+    }
+
+    /**
+     * show frame with message rendered by generated font bytes
+     */
+    private fun showPreviewFontFrame() {
+        if (fontPreview.overlayBitmap == null) {
+            previewImage.setImageBitmap(fontPreview.createImageBitmap(1))
+        }
     }
 
     /**
@@ -957,7 +979,7 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
             FontParams(fontSize = 16f, fontRes = R.font.jd_lcd_rounded, fontName = "jd_lcd_rounded"),  // 1px
             FontParams(
                 fontSize = 20f, fontRes = R.font.led_calculator, fontName = "led_calculator",
-                divider = 1, topOffset = 6, bottomOffset = 2
+                divider = 2, topOffset = 6, bottomOffset = 2
             ),
             FontParams(fontSize = 48f, fontRes = R.font.lexipa, fontName = "lexipa"),
             FontParams(fontSize = 16f, fontRes = R.font.lilliput_steps, fontName = "lilliput_steps"),  // 1px
@@ -1060,7 +1082,11 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
             ),
             FontParams(fontSize = 16f, fontRes = R.font.teeny_pix, fontName = "teeny_pix"),  // 1px
             FontParams(fontSize = 20f, fontRes = R.font.thin_pixel_7, fontName = "thin_pixel_7"),  //1px
-            FontParams(fontSize = 16f, fontRes = R.font.threebyfive_memesbruh03, fontName = "threebyfive_memesbruh03"),  // 1px
+            FontParams(
+                fontSize = 16f,
+                fontRes = R.font.threebyfive_memesbruh03,
+                fontName = "threebyfive_memesbruh03"
+            ),  // 1px
             FontParams(fontSize = 30f, fontRes = R.font.tiny, fontName = "tiny"),  //1px
             FontParams(fontSize = 16f, fontRes = R.font.tiny_unicode, fontName = "tiny_unicode"),
             FontParams(

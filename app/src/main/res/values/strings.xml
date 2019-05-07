@@ -3,4 +3,5 @@
     <string name="menuRender">Render</string>
     <string name="storage_write_rationale">Fonts needed to be written to SDCARD</string>
     <string name="menuGoTo">GoTo</string>
+    <string name="menuPreview">Preview</string>
 </resources>
