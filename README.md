@@ -6,6 +6,7 @@ into code usable for showing text on LCD/OLED displays connected to Raspberry Pi
 This Android Studio project contains 302 already included true type fonts added into android resource dir `/res/font`.
 
 ![Preview Screen](generated/screens/Crocs16px_1.webp?raw=true)
+![Preview Screen](generated/screens/Crocs16px_4.webp?raw=true)
 [More Fonts Preview Screens](generated/README.md)
 
 ## Mobile App Main Features
