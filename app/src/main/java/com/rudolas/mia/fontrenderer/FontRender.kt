@@ -240,8 +240,8 @@ class FontRender {
                 logMsg("CANNOT ACCESS FontBitmaps directory")
                 //                                    return
             }
-            // 2x large 128x96 and 2x 126x64 preview bitmaps
-            val fontBitmapFiles = Array(4) {
+            // 3x large 128x96 and 2x 126x64 preview bitmaps
+            val fontBitmapFiles = Array(5) {
                 File(fontBitmapsDir, "${arrayNameCamel}_$it.webp")
             }
             // write file content builder to output file
@@ -269,6 +269,10 @@ class FontRender {
                 // render the 4th font message smaller preview 128x64 bitmap
                 renderGraphicsMessageCompacted3(fontPreview, message = enLatinChars, useLarge = false)
                 writePreviewBitmapFile(fontBitmapFiles[3], fontPreview.bitmap2!!)
+
+                // render the 5th font message smaller preview 128x96 bitmap
+                renderGraphicsMessageCompacted3(fontPreview, message = enLatinChars)
+                writePreviewBitmapFile(fontBitmapFiles[4], fontPreview.bitmap!!)
             }
             // recycle bitmaps, remove fontPreview object from array
             fontPreview.clear()
@@ -469,7 +473,7 @@ class FontRender {
             ),
             FontParams(
                 fontSize = 27f, fontRes = R.font.bncuword, fontName = "bncuword",
-                divider = 1, topOffset = 5, bottomOffset = 6
+                divider = 2, topOffset = 5, bottomOffset = 6
             ),
             FontParams(
                 fontSize = 36f,
@@ -683,7 +687,8 @@ class FontRender {
             FontParams(
                 fontSize = 32f,
                 fontRes = R.font.mmbnthin,
-                fontName = "mmbnthin"
+                fontName = "mmbnthin",
+                divider = 2, topOffset = 0, bottomOffset = 0
             ),
             FontParams(
                 fontSize = 24f,
@@ -908,6 +913,12 @@ class FontRender {
                 fontSize = 16f,
                 fontRes = R.font.smt_devil_survivor,
                 fontName = "smt_devil_survivor"
+            ),  // 1px
+            FontParams(
+                fontSize = 16f,
+                fontRes = R.font.somybmp01_7,
+                fontName = "somybmp01_7a",
+                divider = 2, topOffset = 0, bottomOffset = 0
             ),  // 1px
             FontParams(
                 fontSize = 16f,
