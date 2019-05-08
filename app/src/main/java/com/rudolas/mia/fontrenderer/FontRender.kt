@@ -7,18 +7,9 @@ import okio.buffer
 import okio.sink
 import java.io.ByteArrayOutputStream
 import java.io.File
-import kotlin.math.max
 import kotlin.math.min
 
 class FontRender {
-
-    private val stringPreviewBuilder = StringBuilder(40)
-    private val stringHexBuilder = StringBuilder(40)
-    private val stringFileBuilders = Array(2) { StringBuilder(32000) }
-    private var pixelWidthMax: Int = 0
-    private var pixelHeightMax: Int = 0
-    private var fontFiles: Array<File> = emptyArray()
-    private var fontBitmapFiles: Array<File> = emptyArray()
     private val fontPreviewArray = arrayOfNulls<FontPreview>(getFontsCount())
     private val latinCharacters = getExtendedLatinCharactersString()
 
@@ -30,60 +21,33 @@ class FontRender {
         updatePreviewBitmap: (Bitmap) -> Unit
     ) {
         val fontParams = getFontParams(fontIndex)
-        val fontName = fontParams.fontName
-        val charText = latinCharacters[charIndex]
 
         if (charIndex < 1 || charIndex > 315) {
-            logMsg("SK: Render START [$fontIndex] $fontName ${fontParams.fontSize.toInt()}px [$charIndex] '$charText'")
+            logMsg("SK: Render START [$fontIndex] ${fontParams.fontName} ${fontParams.fontSize.toInt()}px [$charIndex] '${latinCharacters[charIndex]}'")
         }
         if (charIndex == 0) {
             val fontSize = fontParams.fontSize.toInt()
-            val nameParts = fontName.split('_')
+            val nameParts = fontParams.fontName.split('_')
             val arrayNameCamel =
                 "${Array(nameParts.size) { nameParts[it].capitalize() }.joinToString("")}${fontSize}px"
-
 //            logMsg("SK: Render File [$fontIndex] $arrayNameCamel $fontSize}px [$charIndex] '$charText'")
-
-            val downloadDir = File(getExternalStorageDirectory(), "Download")
-            val fontsDir = File(downloadDir, "Fonts")
-            if (!fontsDir.exists() && !fontsDir.mkdir()) {
-                logMsg("CANNOT ACCESS Fonts directory")
-                //                                    return
-            }
-            fontFiles = Array(2) {
-                File(fontsDir, "$arrayNameCamel.${getLangPrefix(it)}").apply {
-                    if (!exists()) {
-                        logMsg("Font file to be created $absolutePath")
-                    }
-                }
-            }
-            val fontBitmapsDir = File(downloadDir, "FontBitmaps")
-            if (!fontBitmapsDir.exists() && !fontBitmapsDir.mkdir()) {
-                logMsg("CANNOT ACCESS FontBitmaps directory")
-                //                                    return
-            }
-            fontBitmapFiles = Array(2) {
-                File(fontBitmapsDir, "${arrayNameCamel}_$it.webp")
-            }
             fontPreviewArray[fontIndex] = FontPreview(1, fontSize * 3, arrayNameCamel)
         }
 
-        val divider = fontParams.divider
-
         val fontPreview = fontPreviewArray[fontIndex]!!
         val pixelsSize = fontPreview.pixels.size
-        val bitmapWidth = if (charBitmap.width >= pixelsSize) 1 else charBitmap.width / divider
+        val divider = fontParams.divider
         val bitmapHeight =
             if (charBitmap.height - fontParams.bottomOffset >= pixelsSize) 1 else (charBitmap.height - fontParams.bottomOffset) / divider
 
+        val bitmapWidth = if (charBitmap.width >= pixelsSize) 1 else charBitmap.width / divider
+        val topOffset = fontParams.topOffset
+        fontPreview.dims[charIndex] = "${bitmapWidth}x${bitmapHeight - topOffset / divider}"
         fontPreview.widthsArray[charIndex] = bitmapWidth
 
         if (bitmapHeight * divider < pixelsSize && bitmapWidth * divider < pixelsSize) {
-            pixelHeightMax = max(bitmapHeight, pixelHeightMax)
-            pixelWidthMax = max(bitmapWidth, pixelWidthMax)
-            //                            logMsg("SK: Max bitmap $pixelWidthMax x $pixelHeightMax '${fontCharTextView.text}'")
+            fontPreview.updatePixelSizes(bitmapWidth, bitmapHeight)
         }
-        val topOffset = fontParams.topOffset
         val fontMapBuilder = fontPreview.previewMapBuilder[charIndex]
         fontMapBuilder.clear()
         for (y in topOffset until bitmapHeight * divider step divider) {
@@ -103,8 +67,6 @@ class FontRender {
 //                    stringPreviewBuilder.append(if (isPixelOn) 1 else 0)
 //                }
             }
-
-//            addHexString(y, byte, false)
             fontMapBuilder.add(byte)
         }
         charBitmap.recycle() // recycle manually if not assigned to imageView
@@ -114,8 +76,11 @@ class FontRender {
 
             // init kotlin /java files
             val arrayNameCamel = fontPreview.arrayNameCamel
+            val fontName = fontParams.fontName
             val fontSize = fontParams.fontSize
+            val stringFileBuilders = Array(2) { StringBuilder(32000) }
             appendFontFile(
+                stringFileBuilders,
                 "package fonts;\n" +
                         "\npublic class $arrayNameCamel {" +
                         "\n    private  static final int[][] charsPixels = {",
@@ -127,19 +92,23 @@ class FontRender {
                         "            charBytes = arrayOf("
             )
             // appends font chars map rendering as FontItem FONT object
-            val fontCharBytes = fontMapBuilder.toIntArray()
-            for ((indexY, byte) in fontCharBytes.withIndex()) {
+            val fontPreviewBytesArray = fontPreview.previewMapBuilder
+            val stringPreviewBuilder = StringBuilder(40)
+            val stringHexBuilder = StringBuilder(40)
+            for ((index, fontPreviewBytes) in fontPreviewBytesArray.withIndex()) {
+                val fontCharBytes = fontPreviewBytes.toIntArray()
+                for ((indexY, byte) in fontCharBytes.withIndex()) {
 
 //            if (toGenerateCharPixelsPreview) {
 //                appendFontFile("// $stringPreviewBuilder [$y]") // binary char pixels preview
 //                stringPreviewBuilder.clear()
 //            }
-                appendHexString(stringHexBuilder.append(if (/*y == topOffset*/indexY == fontCharBytes.lastIndex) "" else ", ").apply {
-                    if (indexY > 0 && indexY % HEX_VALUES_LINE_LIMIT == 0) {
-                        stringHexBuilder.append("\n ")
-                    }
-                }, byte)
-
+                    appendHexString(stringHexBuilder.append(if (indexY == 0 || indexY == fontCharBytes.size) "" else ", ").apply {
+                        if (indexY > 0 && indexY % HEX_VALUES_LINE_LIMIT == 0) {
+                            stringHexBuilder.append("\n ")
+                        }
+                    }, byte)
+                }
                 val rowBytes = stringHexBuilder.toString()
                 stringHexBuilder.clear()
                 if (bitmapHeight < HEX_VALUES_LINE_LIMIT) {
@@ -147,7 +116,7 @@ class FontRender {
                         stringHexBuilder.append(' ')
                     }
                 }
-                val isNotLastChar = charIndex < FontPreview.ASCII_LATIN_COUNT - 1
+                val isNotLastChar = index < FontPreview.ASCII_LATIN_COUNT - 1
                 if (!isNotLastChar) {
                     stringHexBuilder.append(' ')
                 }
@@ -155,6 +124,7 @@ class FontRender {
 
                 stringHexBuilder.clear()
 
+                val charText = latinCharacters[index]
                 appendHexString(stringHexBuilder, charText.toInt())
                 val hexAscii = stringHexBuilder.toString()
                 stringHexBuilder.clear()
@@ -162,13 +132,15 @@ class FontRender {
                 if (bitmapHeight <= 1) {
                     val appendix = ", // blank font char '$charText' $hexAscii"
                     appendFontFile(
+                        stringFileBuilders,
                         "            {}$appendix",
                         "                IntArray(0)$appendix"
                     )
                 } else {
                     val appendix = "${if (isNotLastChar) "," else ""
-                    }$spacer // [$charIndex] ${bitmapWidth}x${bitmapHeight - topOffset / divider} '$charText' $hexAscii"
+                    }$spacer // [$index] ${fontPreview.dims[index]} '$charText' $hexAscii"
                     appendFontFile(
+                        stringFileBuilders,
                         "            {$rowBytes}$appendix",
                         "                intArrayOf($rowBytes)$appendix"
                     )
@@ -176,6 +148,7 @@ class FontRender {
             }
 
             appendFontFile(
+                stringFileBuilders,
                 "    };\n    private static final int[] widths = {",
                 "            ),\n            widths = intArrayOf("
             )
@@ -184,10 +157,7 @@ class FontRender {
             for (i in widthsArray.indices) {
                 val width = widthsArray[i]
                 stringPreviewBuilder.append(
-                    if (i == 0) widthsArray[min(
-                        width,
-                        FontPreview.charToFontIndex('a') / 2
-                    )] else width
+                    if (i == 0) min(width, widthsArray[FontPreview.charToFontIndex('a')] / 2) else width
                 ).append(if (i < FontPreview.ASCII_LATIN_COUNT - 1) "," else "")
                 if (i % 10 == 9) {
                     for (j in 0..29 - stringPreviewBuilder.length) {
@@ -197,7 +167,9 @@ class FontRender {
                     appendHexString(stringHexBuilder, firstChar.toInt())
                     val appendix =
                         "$stringPreviewBuilder // '$firstChar'..'${latinCharacters[i]}' $stringHexBuilder"
-                    appendFontFile("            $appendix", "                $appendix")
+                    appendFontFile(
+                        stringFileBuilders,"            $appendix", "                $appendix"
+                    )
                     stringPreviewBuilder.clear()
                     stringHexBuilder.clear()
                 }
@@ -208,12 +180,15 @@ class FontRender {
                 }
                 val appendix =
                     "$stringPreviewBuilder //    ..'${latinCharacters[widthsArray.indices.last]}'"
-                appendFontFile("            $appendix", "                $appendix")
+                appendFontFile(
+                    stringFileBuilders,"            $appendix", "                $appendix"
+                )
                 stringPreviewBuilder.clear()
             }
 
             // append font widths array
             appendFontFile(
+                stringFileBuilders,
                 "    };\n\n    public static final FontItem FONT = new FontItem(\n" +
                         "            \"${fontParams.fontName.toUpperCase()}_${fontParams.fontSize.toInt()}PX\",\n" +
                         "            charsPixels,\n" +
@@ -222,7 +197,10 @@ class FontRender {
                 "            )\n        )\n    }\n}"
             )
 
+            val pixelHeightMax = fontPreview.pixelHeightMax
+            val pixelWidthMax = fontPreview.pixelWidthMax
             appendFontFile(
+                stringFileBuilders,
                 "// Max Character Bitmap $pixelWidthMax x $pixelHeightMax ${
                 if (fontParams.divider > 1) "Divider ${fontParams.divider}" else ""
                 } Offsets [Top=${fontParams.topOffset}, Bottom=${fontParams.bottomOffset}]" +
@@ -235,8 +213,32 @@ class FontRender {
                 for (x in 0 until min(pixelWidthMax, pixelsSize)) {
                     stringPreviewBuilder.append(if (pixels[x]) '#' else '.')  // preview '#' as pixel on and '.' as an empty pixel
                 }
-                appendFontFile("// Mass Matrix $stringPreviewBuilder $y")
+                appendFontFile(
+                    stringFileBuilders,"// Mass Matrix $stringPreviewBuilder $y"
+                )
                 stringPreviewBuilder.clear()
+            }
+
+            val downloadDir = File(getExternalStorageDirectory(), "Download")
+            val fontsDir = File(downloadDir, "Fonts")
+            if (!fontsDir.exists() && !fontsDir.mkdir()) {
+                logMsg("CANNOT ACCESS Fonts directory")
+                //                                    return
+            }
+            val fontFiles = Array(2) {
+                File(fontsDir, "$arrayNameCamel.${getLangPrefix(it)}").apply {
+                    if (!exists()) {
+                        logMsg("Font file to be created $absolutePath")
+                    }
+                }
+            }
+            val fontBitmapsDir = File(downloadDir, "FontBitmaps")
+            if (!fontBitmapsDir.exists() && !fontBitmapsDir.mkdir()) {
+                logMsg("CANNOT ACCESS FontBitmaps directory")
+                //                                    return
+            }
+            val fontBitmapFiles = Array(2) {
+                File(fontBitmapsDir, "${arrayNameCamel}_$it.webp")
             }
             // write file content builder to output file
             for (i in fontFiles.indices) {
@@ -293,15 +295,15 @@ class FontRender {
         }
     }
 
-    private fun appendFontFile(line: String) {
-        appendFontFile(line, line)
+    private fun appendFontFile(stringFileBuilders: Array<StringBuilder>, line: String) {
+        appendFontFile(stringFileBuilders, line, line)
     }
 
     /**
      * appends string line to output file string builder - to speed up file generation.
      * It will be flushed to physical sdcard file at the end of rendering
      */
-    private fun appendFontFile(lineJava: String, lineKotlin: String) {
+    private fun appendFontFile(stringFileBuilders: Array<StringBuilder>, lineJava: String, lineKotlin: String) {
         stringFileBuilders[LANG_JAVA].append(lineJava).append("\n")
         stringFileBuilders[LANG_KOTLIN].append(lineKotlin).append("\n")
 //                        logMsg("SK: $line")
@@ -392,7 +394,7 @@ class FontRender {
             ),
             FontParams(
                 fontSize = 16f, fontRes = R.font.american_cursive, fontName = "american_cursive",
-                divider = 2, topOffset = 0, bottomOffset = 0
+                divider = 1, topOffset = 0, bottomOffset = 0
             ),
             FontParams(
                 fontSize = 16f,

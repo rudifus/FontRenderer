@@ -205,7 +205,7 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
             val detailIntentAction = isDetailIntentAction()
             if (detailIntentAction) {
                 if (fixedThreadPool == null) {
-                    fixedThreadPool = Executors.newFixedThreadPool(1)
+                    fixedThreadPool = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() - 1)
                 }
             }
             previewOrGeneratePixelCodeArrays(!detailIntentAction)
@@ -329,12 +329,12 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
 //        toGenerateCharPixelsPreview: Boolean = false
     ) {
         val latinCharacters = fontRender.getExtendedLatinCharactersString()
-        charIndex = 0
-//        logMsg("SK: Generate ${latinCharacters.length} start charIndex $charIndex")
 
         val toCreate = fontTexts.childCount == 0
         updateFontPreview(fontIndex, latinCharacters, toCheckBitmaps, toCreate)
 
+        charIndex = 0
+//        logMsg("SK: Generate ${latinCharacters.length} start charIndex $charIndex")
         if (toCreate || !toRender && onGlobalLayoutListenerBitmapsCheck == null || toRender) {
             addGlobalLayoutListener(latinCharacters, toCheckBitmaps)
         }
@@ -431,19 +431,18 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
 
                         val fontIndex2 = fontIndex
                         val charIndex2 = charIndex
-//                        fixedThreadPool?.submit {
+                        fixedThreadPool?.submit {
                             fontRender.processCharacterBitmap(
                                 fontIndex2,
                                 charIndex2,
                                 charBitmap
-//                                toGenerateCharPixelsPreview
                             ) {
                                 runOnUiThread {
                                     previewImage.setImageBitmap(it)
 //                                    previewImage.invalidate()
                                 }
                             }
-//                        }
+                        }
 
                         when {
                             ++charIndex < latinCharacters.length -> assignLatinCharToRender()
@@ -560,7 +559,7 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
                 } else {
                     fontsScroller.smoothScrollTo(
                         0,
-                        fontTexts.getChildAt(min(position, fontTexts.childCount) * 4).bottom
+                        fontTexts.getChildAt(min(position, fontTexts.childCount) * 2).top
                     )
                 }
             }

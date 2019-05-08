@@ -4,15 +4,19 @@ import android.graphics.Bitmap
 import android.graphics.Color
 import java.io.IOException
 import java.util.ArrayList
+import kotlin.math.max
 
 class FontPreview(
     multiplier: Int,
     fontSizeDim: Int,
     val arrayNameCamel: String
 ) {
+    val dims = Array(ASCII_LATIN_COUNT) { "" }
     val previewMapBuilder = Array<ArrayList<Int>>(ASCII_LATIN_COUNT) { arrayListOf() }
     val widthsArray = IntArray(ASCII_LATIN_COUNT)
     var bitmap: Bitmap? = null
+    internal var pixelWidthMax: Int = 0
+    internal var pixelHeightMax: Int = 0
     internal var pixels: Array<Array<Boolean>> = emptyArray()
 
     init {
@@ -24,6 +28,7 @@ class FontPreview(
 //        logMsg("CREATED $arrayNameCamel FontPreview BITMAP ${multiplier * 128} x ${multiplier * 96} ")
         pixels = Array(fontSizeDim) { Array(fontSizeDim) { false } }
     }
+
     /**
      * show message for selected font - compacted to fit the display screen
      *
@@ -155,6 +160,12 @@ class FontPreview(
         } else {
             previewMapBuilder[charToFontIndex(charValue)].toIntArray()
         }
+    }
+
+    fun updatePixelSizes(bitmapWidth: Int, bitmapHeight: Int) {
+        pixelHeightMax = max(bitmapHeight, pixelHeightMax)
+        pixelWidthMax = max(bitmapWidth, pixelWidthMax)
+        //                            logMsg("SK: Max bitmap $pixelWidthMax x $pixelHeightMax '${fontCharTextView.text}'")
     }
 
     companion object {
