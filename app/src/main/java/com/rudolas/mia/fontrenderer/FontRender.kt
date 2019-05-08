@@ -42,7 +42,7 @@ class FontRender {
             val arrayNameCamel =
                 "${Array(nameParts.size) { nameParts[it].capitalize() }.joinToString("")}${fontSize}px"
 
-            logMsg("SK: Render File [$fontIndex] $arrayNameCamel $fontSize}px [$charIndex] '$charText'")
+//            logMsg("SK: Render File [$fontIndex] $arrayNameCamel $fontSize}px [$charIndex] '$charText'")
 
             val downloadDir = File(getExternalStorageDirectory(), "Download")
             val fontsDir = File(downloadDir, "Fonts")
@@ -110,7 +110,7 @@ class FontRender {
         charBitmap.recycle() // recycle manually if not assigned to imageView
 
         if (charIndex + 1 >= FontPreview.ASCII_LATIN_COUNT) {
-            logMsg("SK: Render [$fontIndex] $fontName ${fontParams.fontSize.toInt()}px ${latinCharacters[charIndex]}")
+//            logMsg("SK: Render [$fontIndex] $fontName ${fontParams.fontSize.toInt()}px ${latinCharacters[charIndex]}")
 
             // init kotlin /java files
             val arrayNameCamel = fontPreview.arrayNameCamel
@@ -182,8 +182,13 @@ class FontRender {
 
             val widthsArray = fontPreview.widthsArray
             for (i in widthsArray.indices) {
-                stringPreviewBuilder.append(widthsArray[i])
-                    .append(if (i < FontPreview.ASCII_LATIN_COUNT - 1) "," else "")
+                val width = widthsArray[i]
+                stringPreviewBuilder.append(
+                    if (i == 0) widthsArray[min(
+                        width,
+                        FontPreview.charToFontIndex('a') / 2
+                    )] else width
+                ).append(if (i < FontPreview.ASCII_LATIN_COUNT - 1) "," else "")
                 if (i % 10 == 9) {
                     for (j in 0..29 - stringPreviewBuilder.length) {
                         stringPreviewBuilder.append(' ')
@@ -255,12 +260,15 @@ class FontRender {
     }
 
     private fun writePreviewBitmapFile(fontBitmapFile: File, previewBitmap: Bitmap) {
+        val scaledBitmap =
+            Bitmap.createScaledBitmap(previewBitmap, previewBitmap.width * 2, previewBitmap.height * 2, true)
         fontBitmapFile.sink(false).buffer().use {
             ByteArrayOutputStream(8000).use { outStream ->
-                previewBitmap.compress(Bitmap.CompressFormat.WEBP, 100, outStream)
+                scaledBitmap.compress(Bitmap.CompressFormat.WEBP, 100, outStream)
                 it.write(outStream.toByteArray())
             }
         }
+        scaledBitmap.recycle()
     }
 
     /**
@@ -350,7 +358,7 @@ class FontRender {
         private const val LANG_PYTHON = 3
 
         private const val skLatinChars =
-            "ľščťžýáíéúäňôČŇĽĎŠŽŤ~${161.toChar()}${190.toChar()}${191.toChar()}${192.toChar()}1234567890aijklmqrtyABDEQ"
+            "áíéúäňôÁÉÍÓÔÚÝáäéíóôúýČčĎĹĺĽľŇňŔŕŘřŠšŤťŮůŹźŻżŽž1234567890aijklmqrtyABDEQ"
         /**
          * array of rendering related data for all provided and supported font resources
          * for all new font resources, here the font related data must be added or altered

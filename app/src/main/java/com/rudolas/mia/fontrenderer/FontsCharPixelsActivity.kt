@@ -415,10 +415,10 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
             } else {
                 object : ViewTreeObserver.OnGlobalLayoutListener {
                     override fun onGlobalLayout() {
-                        if (charIndex < 1 || charIndex > 315) {
-                            logMsg("SK: GlobalLayout [$fontIndex] NO BitmapsCheck charIndex $charIndex ${
-                            if (fixedThreadPool == null) "Null" else "Threads1"} '${latinCharacters[charIndex]}'")
-                        }
+//                        if (charIndex < 1 || charIndex > 315) {
+//                            logMsg("SK: GlobalLayout [$fontIndex] NO BitmapsCheck charIndex $charIndex ${
+//                            if (fixedThreadPool == null) "Null" else "Threads1"} '${latinCharacters[charIndex]}'")
+//                        }
                         val measuredWidth = fontCharTextView.measuredWidth
                         val measuredHeight = fontCharTextView.measuredHeight
                         val isEmpty = measuredWidth == 0 || measuredHeight == 0

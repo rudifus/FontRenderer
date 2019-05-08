@@ -21,7 +21,7 @@ class FontPreview(
             multiplier * 96 + 2 * IMAGE_OFFSET,
             Bitmap.Config.ARGB_8888
         )
-        logMsg("CREATED $arrayNameCamel FontPreview BITMAP ${multiplier * 128} x ${multiplier * 64} ")
+//        logMsg("CREATED $arrayNameCamel FontPreview BITMAP ${multiplier * 128} x ${multiplier * 96} ")
         pixels = Array(fontSizeDim) { Array(fontSizeDim) { false } }
     }
     /**
@@ -76,7 +76,7 @@ class FontPreview(
             if (charsData.isNotEmpty()) {
                 val rowCharWidths = widths.toTypedArray()
                 val charDataHeight = charsData[0].size
-                logMsg("row[" + rowIndex + ", " + startIndex + "] " + rowSize + " chars Height " + charDataHeight + "px")
+//                logMsg("row[" + rowIndex + ", " + startIndex + "] " + rowSize + " chars Height " + charDataHeight + "px")
 
                 // i is row index within char
                 for (i in 0 until charDataHeight) {
@@ -90,13 +90,14 @@ class FontPreview(
                     for (rowCharIndex in charsData.indices) {
                         val charData = charsData[rowCharIndex]
                         if (charData.isNotEmpty()) {
-                            val fontChar = charData[i]
                             val charDataWidth = rowCharWidths[rowCharIndex]
+                            if (i < charData.size) {
+                                val fontChar = charData[i]
 
-                            for (k in 0 until charDataWidth) {
-                                rowPixelFlags[pos + k] = 1 shl charDataWidth - k - 1 and fontChar != 0
+                                for (k in 0 until charDataWidth) {
+                                    rowPixelFlags[pos + k] = 1 shl charDataWidth - k - 1 and fontChar != 0
+                                }
                             }
-
                             pos += charDataWidth
                         }
                     }
@@ -113,7 +114,7 @@ class FontPreview(
     private fun clearBitmap() {
         val width = bitmap?.width ?: -1
         val height = bitmap?.height ?: -1
-        logMsg("clearBitmap [$width, $height]")
+//        logMsg("clearBitmap [$width, $height]")
         if (width < 0 || height < 0) {
             throw IllegalArgumentException("pixels out of bound: w:h[$width, $height]")
         }
@@ -178,7 +179,7 @@ class FontPreview(
         internal val ASCII_LATIN_COUNT =
             ASCII_LATIN_RANGE1.last - ASCII_LATIN_RANGE1.first + ASCII_LATIN_RANGE2.last - ASCII_LATIN_RANGE2.first + 2
 
-        private fun charToFontIndex(charValue: Char): Int {
+        internal fun charToFontIndex(charValue: Char): Int {
             return if (charValue.toInt() > 130) charValue.toInt() - 66 else charValue.toInt() - 32
         }
 
