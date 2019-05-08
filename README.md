@@ -3,7 +3,10 @@
 *FontRenderer* is android app to preview and convert available true type fonts with extended latin characters such as diacritics 
 into code usable for showing text on LCD/OLED displays connected to Raspberry Pi or Android Things devices.
 
-This Android Studio project contains 127 already included true type fonts added into android resource dir `/res/font`.
+This Android Studio project contains 302 already included true type fonts added into android resource dir `/res/font`.
+
+![Preview Screen](generated/screens/Crocs16px_1.webp?raw=true)
+[More Fonts Preview Screens](generated/README.md)
 
 ## Mobile App Main Features
 
