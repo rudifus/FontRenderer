@@ -12,8 +12,9 @@ This Android Studio project contains 302 already included true type fonts added 
 ## Mobile App Main Features
 
  * preview available true type fonts with extended latin characters such as diacritics.
- * preview selected ASCII chars in font sizes from 5px to 64 px to choose the best match for the native font size resolution
+ * preview selected ASCII chars in font sizes from 5px to 64 px to choose the best match for the native font size resolution.
  * render complete ascii characters map into byte pixels array for java/kotlin code use.
+ * render 5 font preview bitmaps and store them as WEBP images into a phone sdcard.
 
 ## Actual supported ASCII characters ranges
  *  standard characters         ASCII `32..126     space .. ~`
@@ -69,6 +70,8 @@ There are generated pixel bytes for each character from supported ASCII range pe
 output kotlin code sample:
 
 ```kotlin
+import fonts;
+
 class TinyUnicode16px {
     companion object {
         val font = FontItem( // FONT 16px tiny_unicode.ttf
@@ -87,7 +90,7 @@ class TinyUnicode16px {
         )
     }
 }
-// Max Bitmap 14 x 13 Offsets [Top=0, Bottom=0] 
+// Max Bitmap 14 x 13, Offsets [Top=0, Bottom=0] 
 // Mass Matrix - merged text preview from all characters rendered into one map
 // Mass Matrix ############## 0
 // Mass Matrix ############## 1
