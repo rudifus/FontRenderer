@@ -4,6 +4,4 @@
           android:layout_height="wrap_content"
           android:layout_marginStart="240dp"
           android:textSize="5px"
-        >
-
-</TextView>
+        />

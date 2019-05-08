@@ -31,7 +31,8 @@ class FontRender {
             val arrayNameCamel =
                 "${Array(nameParts.size) { nameParts[it].capitalize() }.joinToString("")}${fontSize}px"
 //            logMsg("SK: Render File [$fontIndex] $arrayNameCamel $fontSize}px [$charIndex] '$charText'")
-            fontPreviewArray[fontIndex] = FontPreview(1, fontSize * 3, arrayNameCamel)
+            fontPreviewArray[fontIndex] = FontPreview(arrayNameCamel = arrayNameCamel)
+                .initialize(1, fontSize * 3)
         }
 
         val fontPreview = fontPreviewArray[fontIndex]!!
@@ -73,7 +74,6 @@ class FontRender {
 
         if (charIndex + 1 >= FontPreview.ASCII_LATIN_COUNT) {
 //            logMsg("SK: Render [$fontIndex] $fontName ${fontParams.fontSize.toInt()}px ${latinCharacters[charIndex]}")
-
             // init kotlin /java files
             val arrayNameCamel = fontPreview.arrayNameCamel
             val fontName = fontParams.fontName
@@ -154,11 +154,13 @@ class FontRender {
             )
 
             val widthsArray = fontPreview.widthsArray
+
+            // alter first ' ' blank width space to render compacted sentences width on display
+            widthsArray[0] = min(widthsArray[0], widthsArray[FontPreview.charToFontIndex('a')] / 2 + 1)
+
             for (i in widthsArray.indices) {
-                val width = widthsArray[i]
-                stringPreviewBuilder.append(
-                    if (i == 0) min(width, widthsArray[FontPreview.charToFontIndex('a')] / 2) else width
-                ).append(if (i < FontPreview.ASCII_LATIN_COUNT - 1) "," else "")
+                stringPreviewBuilder.append(widthsArray[i])
+                    .append(if (i < FontPreview.ASCII_LATIN_COUNT - 1) "," else "")
                 if (i % 10 == 9) {
                     for (j in 0..29 - stringPreviewBuilder.length) {
                         stringPreviewBuilder.append(' ')
@@ -225,6 +227,7 @@ class FontRender {
                 logMsg("CANNOT ACCESS Fonts directory")
                 //                                    return
             }
+            // Java, Kotlin code output files
             val fontFiles = Array(2) {
                 File(fontsDir, "$arrayNameCamel.${getLangPrefix(it)}").apply {
                     if (!exists()) {
@@ -237,7 +240,8 @@ class FontRender {
                 logMsg("CANNOT ACCESS FontBitmaps directory")
                 //                                    return
             }
-            val fontBitmapFiles = Array(2) {
+            // 2x large 128x96 and 2x 126x64 preview bitmaps
+            val fontBitmapFiles = Array(4) {
                 File(fontBitmapsDir, "${arrayNameCamel}_$it.webp")
             }
             // write file content builder to output file
@@ -249,15 +253,26 @@ class FontRender {
             }
 
             if (fontPreview.bitmap != null) {
-                // render the 1st bitmap message font preview
-                fontPreview.renderGraphicsMessageCompacted3(skLatinChars)
+                // render the 1st font message large preview 128x96 bitmap and show it in image view
+                renderGraphicsMessageCompacted3(fontPreview, skLatinChars)
                 updatePreviewBitmap(fontPreview.bitmap!!)
-                // write file preview bitmap 2
                 writePreviewBitmapFile(fontBitmapFiles[0], fontPreview.bitmap!!)
-                // render the 2nd bitmap message font preview
-                fontPreview.renderGraphicsMessageCompacted3()
+
+                // render the 2nd font message large preview 128x96 bitmap
+                renderGraphicsMessageCompacted3(fontPreview)
                 writePreviewBitmapFile(fontBitmapFiles[1], fontPreview.bitmap!!)
+
+                // render the 3rd font message smaller preview 128x64 bitmap
+                renderGraphicsMessageCompacted3(fontPreview, useLarge = false)
+                writePreviewBitmapFile(fontBitmapFiles[2], fontPreview.bitmap2!!)
+
+                // render the 4th font message smaller preview 128x64 bitmap
+                renderGraphicsMessageCompacted3(fontPreview, message = enLatinChars, useLarge = false)
+                writePreviewBitmapFile(fontBitmapFiles[3], fontPreview.bitmap2!!)
             }
+            // recycle bitmaps, remove fontPreview object from array
+            fontPreview.clear()
+            fontPreviewArray[fontIndex] = null
         }
     }
 
@@ -358,6 +373,8 @@ class FontRender {
         private const val LANG_JAVA = 1
         private const val LANG_C = 2
         private const val LANG_PYTHON = 3
+
+        private const val enLatinChars = "The quick brown fox jumps over the lazy dog. Is there better Example, isn't? January 0123456789"
 
         private const val skLatinChars =
             "áíéúäňôÁÉÍÓÔÚÝáäéíóôúýČčĎĹĺĽľŇňŔŕŘřŠšŤťŮůŹźŻżŽž1234567890aijklmqrtyABDEQ"
@@ -1840,6 +1857,97 @@ class FontRender {
                 fontName = "yacarena_ultra_personal_use"
             )
         )
+
+        private const val MESSAGE =
+            "Žiadny príklad by nebol krajší, než takýto krásny text s dĺžňami a mäkčeňmi rýdzo po slovensky."
+
+        /**
+         * show message for selected font - compacted to fit the display screen
+         *
+         * @param message  demo text
+         */
+        fun renderGraphicsMessageCompacted3(
+            fontPreview: FontPreview,
+            message: String = MESSAGE,
+            rowOffset: Int = 0,
+            useLarge: Boolean = true
+        ) {
+            var charIndex = -1
+            var rowIndex = rowOffset
+            var lastRowEndCharIndex = -1
+            val messageLength = message.length
+            val width = fontPreview.getScreenWidth(useLarge)
+            val height = fontPreview.getScreenHeight(useLarge)
+
+            fontPreview.clearBitmap(useLarge)
+            val widths = ArrayList<Int>(20)
+            while (charIndex < messageLength - 1 && rowIndex <= height) {
+                var pixelCount = 0
+
+                widths.clear()
+                while (charIndex < messageLength - 1 && pixelCount < width) {
+                    val nextCharIndex = charIndex + 1
+                    val charValue = message[nextCharIndex]
+                    val charPixelsWidth = fontPreview.getFontDataWidth(charValue)
+                    widths.add(charPixelsWidth)
+//                logMsg(
+//                    "pixels[$rowIndex, $nextCharIndex] '$charValue' dataIndex ${charToFontIndex(charValue)}" +
+//                            ' '.toString() + pixelCount + " Pixels " + charPixelsWidth
+//                )
+                    if (pixelCount + charPixelsWidth > width) {
+                        break
+                    }
+                    pixelCount += charPixelsWidth
+                    charIndex++
+                }
+
+                val rowSize = charIndex - lastRowEndCharIndex
+                val startIndex = lastRowEndCharIndex + 1
+                lastRowEndCharIndex = charIndex
+                val charArray = message.substring(startIndex, startIndex + rowSize).toCharArray()
+
+//            logMsg("row[$rowIndex, $charIndex]  chars $rowSize")
+
+                val charsDataList = ArrayList<IntArray>(rowSize)
+                for (i in 0 until rowSize) {
+                    charsDataList.add(fontPreview.getFontData(charArray[i]))
+                }
+
+                val charsData = charsDataList.toTypedArray()
+                if (charsData.isNotEmpty()) {
+                    val rowCharWidths = widths.toTypedArray()
+                    val charDataHeight = charsData[0].size
+//                logMsg("row[" + rowIndex + ", " + startIndex + "] " + rowSize + " chars Height " + charDataHeight + "px")
+
+                    // i is row index within char
+                    for (i in 0 until charDataHeight) {
+                        val actRowIndex = rowIndex + i
+                        if (actRowIndex >= height) {
+                            break
+                        }
+
+                        var pos = 0
+                        val rowPixelFlags = BooleanArray(width)
+                        for (rowCharIndex in charsData.indices) {
+                            val charData = charsData[rowCharIndex]
+                            if (charData.isNotEmpty()) {
+                                val charDataWidth = rowCharWidths[rowCharIndex]
+                                if (i < charData.size) {
+                                    val fontChar = charData[i]
+
+                                    for (k in 0 until charDataWidth) {
+                                        rowPixelFlags[pos + k] = 1 shl charDataWidth - k - 1 and fontChar != 0
+                                    }
+                                }
+                                pos += charDataWidth
+                            }
+                        }
+                        fontPreview.setRowPixelArray(0, actRowIndex, rowPixelFlags, useLarge)
+                    }
+                    rowIndex += charDataHeight
+                }
+            }
+        }
 
         private fun logMsg(msg: String) = android.util.Log.d("FontRender", msg)
     }
