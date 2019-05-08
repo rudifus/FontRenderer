@@ -90,7 +90,6 @@ Dot Matrix<br>Normal</br> | 16px | ![Screenshot](screens/DotMatrixNormal16px_1.w
 Dot Matrix<br>Regular</br> | 16px | ![Screenshot](screens/DotMatrixRegular16px_1.webp?raw=true) | ![Screenshot](screens/DotMatrixRegular16px_4.webp?raw=true) 
 Draft Gothic Thin | 16px | ![Screenshot](screens/DraftGothicThin16px_1.webp?raw=true) | ![Screenshot](screens/DraftGothicThin16px_4.webp?raw=true) 
 Draft Plate<br>Condensed</br> | 16px | ![Screenshot](screens/DraftPlateCondensed16px_2.webp?raw=true) | ![Screenshot](screens/DraftPlateCondensed16px_3.webp?raw=true) 
-Draftsman<br>Normal</br> | 16px | ![Screenshot](screens/DraftsmanNormal16px_1.webp?raw=true) | ![Screenshot](screens/DraftsmanNormal16px_4.webp?raw=true) 
 Dtl Prokyon<br>St Light</br> | 16px | ![Screenshot](screens/DtlProkyonStLight16px_1.webp?raw=true) | ![Screenshot](screens/DtlProkyonStLight16px_4.webp?raw=true) 
 Duc De Berry | 16px | ![Screenshot](screens/DucDeBerry16px_1.webp?raw=true) | ![Screenshot](screens/DucDeBerry16px_4.webp?raw=true) 
 Endlesstype | 8px | ![Screenshot](screens/Endlesstype8px_2.webp?raw=true) | ![Screenshot](screens/Endlesstype8px_3.webp?raw=true) 
