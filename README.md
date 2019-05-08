@@ -70,7 +70,7 @@ There are generated pixel bytes for each character from supported ASCII range pe
 output kotlin code sample:
 
 ```kotlin
-import fonts;
+package fonts;
 
 class TinyUnicode16px {
     companion object {
