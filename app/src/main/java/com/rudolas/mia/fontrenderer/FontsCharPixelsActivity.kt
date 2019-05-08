@@ -452,6 +452,7 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
                                 // continue to render next view
                                 if (isContinuousRendering) {
                                     updateFontPreview(++fontIndex, "")
+                                    setCharTextSize(getActFontParams().fontSize)
                                     assignLatinCharToRender()
                                 } else {
                                     fontTexts.viewTreeObserver.removeOnGlobalLayoutListener(this)
