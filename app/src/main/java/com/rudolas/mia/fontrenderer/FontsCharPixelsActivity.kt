@@ -611,7 +611,7 @@ class FontsCharPixelsActivity : AppCompatActivity(), View.OnClickListener {
          * To avoid font bytes code compilation troubles, e.g. java code too large,
          * keep font sizes to match native font sizes or as low as possible to render non excessive bitmap sizes.
          */
-        private const val charsToShowAsBitmaps = "ýô" // "ýô8Ź0#"
+        private const val charsToShowAsBitmaps = "8ýô" // "ýô8Ź0#"
         private const val skChars = "8Ź!01#\$/@QÁŽČčĎŢţŤťáäýóô"
 
         private fun logMsg(msg: String) = android.util.Log.d("FontsCharPixelsActivity", msg)
